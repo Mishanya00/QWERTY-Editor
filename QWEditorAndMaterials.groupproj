@@ -1,0 +1,72 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{BABB5F8C-AB4D-4AE1-BCCB-2F681C17819F}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="QWEDitor.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="D:\Education\BSUIR\Disciplines\Delphi\Delphi_Projects\GUI_Apps\NoteBad\NoteBad.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="D:\Education\BSUIR\Disciplines\Delphi\Delphi_Projects\GUI_Apps\CustomDragDrop\CustomDragDrop.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="D:\Education\BSUIR\Disciplines\Delphi\Delphi_Projects\GUI_Apps\TestForm8\Project3.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="QWEDitor">
+        <MSBuild Projects="QWEDitor.dproj"/>
+    </Target>
+    <Target Name="QWEDitor:Clean">
+        <MSBuild Projects="QWEDitor.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="QWEDitor:Make">
+        <MSBuild Projects="QWEDitor.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="NoteBad">
+        <MSBuild Projects="D:\Education\BSUIR\Disciplines\Delphi\Delphi_Projects\GUI_Apps\NoteBad\NoteBad.dproj"/>
+    </Target>
+    <Target Name="NoteBad:Clean">
+        <MSBuild Projects="D:\Education\BSUIR\Disciplines\Delphi\Delphi_Projects\GUI_Apps\NoteBad\NoteBad.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="NoteBad:Make">
+        <MSBuild Projects="D:\Education\BSUIR\Disciplines\Delphi\Delphi_Projects\GUI_Apps\NoteBad\NoteBad.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="CustomDragDrop">
+        <MSBuild Projects="D:\Education\BSUIR\Disciplines\Delphi\Delphi_Projects\GUI_Apps\CustomDragDrop\CustomDragDrop.dproj"/>
+    </Target>
+    <Target Name="CustomDragDrop:Clean">
+        <MSBuild Projects="D:\Education\BSUIR\Disciplines\Delphi\Delphi_Projects\GUI_Apps\CustomDragDrop\CustomDragDrop.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="CustomDragDrop:Make">
+        <MSBuild Projects="D:\Education\BSUIR\Disciplines\Delphi\Delphi_Projects\GUI_Apps\CustomDragDrop\CustomDragDrop.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Project3">
+        <MSBuild Projects="D:\Education\BSUIR\Disciplines\Delphi\Delphi_Projects\GUI_Apps\TestForm8\Project3.dproj"/>
+    </Target>
+    <Target Name="Project3:Clean">
+        <MSBuild Projects="D:\Education\BSUIR\Disciplines\Delphi\Delphi_Projects\GUI_Apps\TestForm8\Project3.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="Project3:Make">
+        <MSBuild Projects="D:\Education\BSUIR\Disciplines\Delphi\Delphi_Projects\GUI_Apps\TestForm8\Project3.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="QWEDitor;NoteBad;CustomDragDrop;Project3"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="QWEDitor:Clean;NoteBad:Clean;CustomDragDrop:Clean;Project3:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="QWEDitor:Make;NoteBad:Make;CustomDragDrop:Make;Project3:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>
