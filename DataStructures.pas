@@ -3,7 +3,7 @@
 interface
 
 uses
-  Vcl.Graphics;
+  Vcl.Graphics, System.Types;
 
 type
 
@@ -17,10 +17,7 @@ type
   TBlockInfo = record
     id: integer;
     blockType: TBlockType;
-    x: integer;
-    y: integer;
-    length: integer;
-    height: integer;
+    bounds: TRect;
 
   end;
 

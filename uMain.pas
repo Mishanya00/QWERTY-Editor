@@ -6,7 +6,11 @@ uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, System.Actions, Vcl.ActnList,
   System.ImageList, Vcl.ImgList, Vcl.ToolWin, Vcl.ComCtrls, Vcl.Menus,
-  Vcl.ExtCtrls, Vcl.StdCtrls, DataStructures, SourceListing;
+  Vcl.ExtCtrls, Vcl.StdCtrls,
+
+  // custom imports
+  DrawSymbols, DataStructures, SourceListing, Vcl.Imaging.jpeg,
+  Vcl.Imaging.pngimage;
 
 type
   TfrmMain = class(TForm)
@@ -41,8 +45,27 @@ type
     StatusBar1: TStatusBar;
     N9: TMenuItem;
     N10: TMenuItem;
-    pbWorkingArea: TPaintBox;
     odMain: TOpenDialog;
+    ilFlowchartSymbols: TImageList;
+    actDragSymbol: TAction;
+    pnlTerminator: TPanel;
+    pnlProcess: TPanel;
+    imgTerminator: TImage;
+    pnlMain: TPanel;
+    pbWorkingArea: TImage;
+    Image1: TImage;
+    Panel1: TPanel;
+    Image2: TImage;
+    Panel2: TPanel;
+    Image3: TImage;
+    Panel3: TPanel;
+    Image4: TImage;
+    Panel4: TPanel;
+    Image5: TImage;
+    Panel5: TPanel;
+    Image6: TImage;
+    Panel6: TPanel;
+    Image7: TImage;
     procedure pbWorkingAreaMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
     procedure pbWorkingAreaMouseMove(Sender: TObject; Shift: TShiftState; X,
@@ -51,6 +74,13 @@ type
       Shift: TShiftState; X, Y: Integer);
     procedure FormCreate(Sender: TObject);
     procedure actionsExecuter(Sender: TObject);
+    procedure panelSymbolsDragOver(Sender, Source: TObject; X, Y: Integer;
+      State: TDragState; var Accept: Boolean);
+    procedure imgTerminatorMouseDown(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
+    procedure pbWorkingAreaDragDrop(Sender, Source: TObject; X, Y: Integer);
+    procedure pbWorkingAreaDragOver(Sender, Source: TObject; X, Y: Integer;
+      State: TDragState; var Accept: Boolean);
 
   private
     paintMode: boolean;
@@ -65,6 +95,8 @@ var
 
 implementation
 
+procedure InitTags(); forward;
+
 const
   CREATE_TAG    = 1;
   OPEN_TAG      = 2;
@@ -76,6 +108,11 @@ const
   PASTE_TAG     = 8;
 
 {$R *.dfm}
+
+procedure InitTags();
+begin
+
+end;
 
 procedure TfrmMain.actionsExecuter(Sender: TObject);
 begin
@@ -93,7 +130,7 @@ begin
          FFileName := odMain.Files[0];
          frmDelphiListing.Show();
          frmDelphiListing.memoListing.Lines.LoadFromFile(FFileName);
-         Caption := 'Listing - ' + FFileName;
+         frmDelphiListing.Caption := 'Listing - ' + FFileName;
       end;
       SAVE_TAG:
          ShowMessage('Save routine');
@@ -117,10 +154,13 @@ end;
 
 procedure TfrmMain.FormCreate(Sender: TObject);
 begin
+
   pbWorkingArea.Canvas.Pen.Color := clBlue;
   pbWorkingArea.Canvas.Pen.Mode := pmCopy;
   pbWorkingArea.Canvas.Brush.Style := bsSolid;
   pbWorkingArea.Canvas.Brush.Color := clBlue;
+
+  SetCanvaAttributes(pbWorkingArea.Canvas, clBlack, clWhite, bsSolid);
 
   // Assignment of actions' tags
   actCreate.Tag   := 1;
@@ -131,6 +171,37 @@ begin
   actCut.Tag      := 6;
   actCopy.Tag     := 7;
   actPaste.Tag    := 8;
+end;
+
+procedure TfrmMain.imgTerminatorMouseDown(Sender: TObject; Button: TMouseButton;
+  Shift: TShiftState; X, Y: Integer);
+begin
+  (Sender as TImage).BeginDrag(True);
+end;
+
+procedure TfrmMain.panelSymbolsDragOver(Sender, Source: TObject; X, Y: Integer;
+  State: TDragState; var Accept: Boolean);
+begin
+  if Source.ClassName = 'TImage' then
+    Accept := True
+  else
+    Accept := False;
+end;
+
+procedure TfrmMain.pbWorkingAreaDragDrop(Sender, Source: TObject; X,
+  Y: Integer);
+begin
+
+  case (Source as TImage).tag of
+    1:
+      DrawProcessSymbol(pbWorkingArea.canvas, x, y, x + 50, y + 50);
+  end;
+end;
+
+procedure TfrmMain.pbWorkingAreaDragOver(Sender, Source: TObject; X, Y: Integer;
+  State: TDragState; var Accept: Boolean);
+begin
+  exit;
 end;
 
 procedure TfrmMain.pbWorkingAreaMouseDown(Sender: TObject; Button: TMouseButton;
