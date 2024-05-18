@@ -107,6 +107,7 @@
             <Form>frmDelphiListing</Form>
             <FormType>dfm</FormType>
         </DCCReference>
+        <DCCReference Include="DrawSymbols.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

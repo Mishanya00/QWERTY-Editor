@@ -11,5 +11,7 @@
     <Transaction>2024/05/08 10:56:26.000.998,=C:\Users\HP\Documents\GitHub\QWERTY-Editor\Unit3.pas</Transaction>
     <Transaction>2024/05/08 10:57:52.000.151,C:\Users\HP\Documents\GitHub\QWERTY-Editor\Unit3.pas=C:\Users\HP\Documents\GitHub\QWERTY-Editor\SourceListing.pas</Transaction>
     <Transaction>2024/05/08 10:57:52.000.151,C:\Users\HP\Documents\GitHub\QWERTY-Editor\Unit3.dfm=C:\Users\HP\Documents\GitHub\QWERTY-Editor\SourceListing.dfm</Transaction>
+    <Transaction>2024/05/16 13:12:09.000.851,=C:\Users\HP\Documents\GitHub\QWERTY-Editor\Unit1.pas</Transaction>
+    <Transaction>2024/05/16 13:12:22.000.896,C:\Users\HP\Documents\GitHub\QWERTY-Editor\Unit1.pas=C:\Users\HP\Documents\GitHub\QWERTY-Editor\DrawSymbols.pas</Transaction>
   </Transactions>
 </BorlandProject>

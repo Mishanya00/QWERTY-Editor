@@ -8,7 +8,7 @@ uses
 type
 
   TLineType = (Straight, Arrow, DualArrow);
-  TBlockType = (Symbol, Decision, Teleport);
+  TBlockType = (Terminator, Process, Decision, Data, Predefined, Teleport);
 
   PBlock = ^TBlock;
   PText = ^TText;
@@ -18,7 +18,6 @@ type
     id: integer;
     blockType: TBlockType;
     bounds: TRect;
-
   end;
 
   TBlock = record
@@ -55,11 +54,93 @@ type
     next: PLine;
   end;
 
-procedure startupInit(blocks: PBlock; lines: PLine; labels: PText);
+procedure AddBlock(blocks: PBlock; blockToAdd: TBlockInfo);
+function GetIdByCoord(blocks: PBlock; lines: PLine; labels: PText; point: TPoint): integer;
+function RemoveBlock(blocks: PBlock; idToRemove: integer): boolean;
+procedure StartupInit(var blocks: PBlock; var lines: PLine; var labels: PText);
 
 implementation
 
-procedure startupInit(blocks: PBlock; lines: PLine; labels: PText);
+procedure AddBlock(blocks: PBlock; blockToAdd: TBlockInfo);
+var
+  id: integer;
+begin
+
+  inc(blocks.info.id);
+  id := blocks.info.id;
+
+  while blocks.next <> nil do
+    blocks := blocks.next;
+
+  New(blocks.next);
+
+  blocks.next.info := blockToAdd;
+  blocks.next.info.id := id;
+  blocks.next.next := nil;
+
+  exit;
+end;
+
+function GetIdByCoord(blocks: PBlock; lines: PLine; labels: PText; point: TPoint): integer;
+begin
+
+  Result := -1;
+
+  while blocks.next <> nil do
+  begin 
+    blocks := blocks.next; 
+    if PtInRect(blocks.info.bounds, point) then
+    begin
+      Result := blocks.info.id;
+      break;
+    end;
+  end;
+
+  while labels.next <> nil do
+  begin 
+    labels := labels.next;
+  end;
+
+  while lines.next <> nil do
+  begin 
+    lines := lines.next;
+  end;
+
+end;
+
+function RemoveBlock(blocks: PBlock; idToRemove: integer): boolean;
+
+var
+  temp: PBlock;
+
+begin
+
+  Result := false;
+
+  while ((blocks^.next <> nil) and not(Result)) do
+  begin
+
+    if blocks.next.info.id = idToRemove then
+    begin
+
+      temp := blocks.next;
+      blocks.next := blocks.next.next;
+      Result := true;
+
+      temp.next := nil;
+      Dispose(temp);
+
+    end;
+
+    // In case of last element deletion
+    if blocks.next <> nil then
+      blocks := blocks.next;
+
+  end;
+
+end;
+
+procedure StartupInit(var blocks: PBlock; var lines: PLine; var labels: PText);
 begin
 
   New(blocks);

@@ -3,7 +3,8 @@
 interface
 
 uses
-  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants,
+  System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, System.Actions, Vcl.ActnList,
   System.ImageList, Vcl.ImgList, Vcl.ToolWin, Vcl.ComCtrls, Vcl.Menus,
   Vcl.ExtCtrls, Vcl.StdCtrls,
@@ -46,31 +47,24 @@ type
     N9: TMenuItem;
     N10: TMenuItem;
     odMain: TOpenDialog;
-    ilFlowchartSymbols: TImageList;
     actDragSymbol: TAction;
-    pnlTerminator: TPanel;
-    pnlProcess: TPanel;
-    imgTerminator: TImage;
-    pnlMain: TPanel;
+    pnlDecision: TPanel;
+    imgDecision: TImage;
+    pnlPredefined: TPanel;
+    imgPredefined: TImage;
+    pnlTeleport: TPanel;
+    imgTeleport: TImage;
+    pnlData: TPanel;
+    imgData: TImage;
     pbWorkingArea: TImage;
-    Image1: TImage;
-    Panel1: TPanel;
-    Image2: TImage;
-    Panel2: TPanel;
-    Image3: TImage;
-    Panel3: TPanel;
-    Image4: TImage;
-    Panel4: TPanel;
-    Image5: TImage;
-    Panel5: TPanel;
-    Image6: TImage;
-    Panel6: TPanel;
-    Image7: TImage;
+    ScrollBox1: TScrollBox;
+    Splitter1: TSplitter;
+    ilFlowchartSymbols: TImageList;
+    pnlTerminator: TPanel;
+    imgTerminator: TImage;
+    pnlProcess: TPanel;
+    imgProcess: TImage;
     procedure pbWorkingAreaMouseDown(Sender: TObject; Button: TMouseButton;
-      Shift: TShiftState; X, Y: Integer);
-    procedure pbWorkingAreaMouseMove(Sender: TObject; Shift: TShiftState; X,
-      Y: Integer);
-    procedure pbWorkingAreaMouseUp(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
     procedure FormCreate(Sender: TObject);
     procedure actionsExecuter(Sender: TObject);
@@ -81,9 +75,11 @@ type
     procedure pbWorkingAreaDragDrop(Sender, Source: TObject; X, Y: Integer);
     procedure pbWorkingAreaDragOver(Sender, Source: TObject; X, Y: Integer;
       State: TDragState; var Accept: Boolean);
+    procedure ScrollBox1MouseWheel(Sender: TObject; Shift: TShiftState;
+      WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
 
   private
-    paintMode: boolean;
+    paintMode: Boolean;
     FFileName: string;
 
   public
@@ -95,17 +91,26 @@ var
 
 implementation
 
+var
+  blocks: PBlock;
+  labels: PText;
+  lines: PLine;
+
+  fDragging: Boolean;
+  fSelection: Boolean; // Process of selecting items inside the area
+  FMayDrag:  Boolean;
+
 procedure InitTags(); forward;
 
 const
-  CREATE_TAG    = 1;
-  OPEN_TAG      = 2;
-  SAVE_TAG      = 3;
-  SAVE_AS_TAG   = 4;
-  EXPORT_TAG    = 5;
-  CUT_TAG       = 6;
-  COPY_TAG      = 7;
-  PASTE_TAG     = 8;
+  CREATE_TAG = 1;
+  OPEN_TAG = 2;
+  SAVE_TAG = 3;
+  SAVE_AS_TAG = 4;
+  EXPORT_TAG = 5;
+  CUT_TAG = 6;
+  COPY_TAG = 7;
+  PASTE_TAG = 8;
 
 {$R *.dfm}
 
@@ -125,52 +130,61 @@ begin
       CREATE_TAG:
         ShowMessage('Create routine');
       OPEN_TAG:
-      begin
-         if not(odMain.Execute()) then Exit;
-         FFileName := odMain.Files[0];
-         frmDelphiListing.Show();
-         frmDelphiListing.memoListing.Lines.LoadFromFile(FFileName);
-         frmDelphiListing.Caption := 'Listing - ' + FFileName;
-      end;
+        begin
+          if not(odMain.Execute()) then
+            Exit;
+          FFileName := odMain.Files[0];
+          frmDelphiListing.Show();
+          frmDelphiListing.memoListing.lines.LoadFromFile(FFileName);
+          frmDelphiListing.Caption := 'Listing - ' + FFileName;
+        end;
       SAVE_TAG:
-         ShowMessage('Save routine');
+        ShowMessage('Save routine');
       SAVE_AS_TAG:
-         ShowMessage('Save as routine');
+        ShowMessage('Save as routine');
       EXPORT_TAG:
-         ShowMessage('Export routine');
+        ShowMessage('Export routine');
 
       CUT_TAG:
         ShowMessage('CUT routine');
       COPY_TAG:
         ShowMessage('COPY routine');
       PASTE_TAG:
-         ShowMessage('PASTE routine');
+        ShowMessage('PASTE routine');
     end;
 
   end;
-
 
 end;
 
 procedure TfrmMain.FormCreate(Sender: TObject);
 begin
 
+  StartupInit(blocks, lines, labels);
   pbWorkingArea.Canvas.Pen.Color := clBlue;
   pbWorkingArea.Canvas.Pen.Mode := pmCopy;
   pbWorkingArea.Canvas.Brush.Style := bsSolid;
   pbWorkingArea.Canvas.Brush.Color := clBlue;
 
-  SetCanvaAttributes(pbWorkingArea.Canvas, clBlack, clWhite, bsSolid);
+  SetCanvaAttributes(pbWorkingArea.Canvas, 3, clBlack, clWhite, bsSolid);
 
   // Assignment of actions' tags
-  actCreate.Tag   := 1;
-  actOpen.Tag     := 2;
-  actSave.Tag     := 3;
-  actSaveAs.Tag   := 4;
-  actExport.Tag   := 5;
-  actCut.Tag      := 6;
-  actCopy.Tag     := 7;
-  actPaste.Tag    := 8;
+  actCreate.Tag := 1;
+  actOpen.Tag := 2;
+  actSave.Tag := 3;
+  actSaveAs.Tag := 4;
+  actExport.Tag := 5;
+  actCut.Tag := 6;
+  actCopy.Tag := 7;
+  actPaste.Tag := 8;
+
+  // Assignment of image-symbols tags
+  imgTerminator.Tag := 1;
+  imgProcess.Tag := 2;
+  imgDecision.Tag := 3;
+  imgData.Tag := 4;
+  imgPredefined.Tag := 5;
+  imgTeleport.Tag := 6;
 end;
 
 procedure TfrmMain.imgTerminatorMouseDown(Sender: TObject; Button: TMouseButton;
@@ -188,43 +202,61 @@ begin
     Accept := False;
 end;
 
-procedure TfrmMain.pbWorkingAreaDragDrop(Sender, Source: TObject; X,
-  Y: Integer);
-begin
+procedure TfrmMain.pbWorkingAreaDragDrop(Sender, Source: TObject;
+  X, Y: Integer);
 
-  case (Source as TImage).tag of
-    1:
-      DrawProcessSymbol(pbWorkingArea.canvas, x, y, x + 50, y + 50);
+var
+  point: TPoint;
+  tempBlock: TBlockInfo;
+
+begin
+  point := (Sender as TControl).ScreenToClient(Mouse.CursorPos);
+
+  // Numbers equal the value of the corresponding tag
+  case (Source as TImage).Tag of
+    2:
+      begin
+        tempBlock.bounds := Rect(point.X - defaultWidth,
+          point.Y - defaultHeight, point.X + defaultWidth,
+          point.Y + defaultHeight);
+        tempBlock.blockType := Process;
+        AddBlock(blocks, tempBlock);
+      end;
+    6:
+      begin
+        tempBlock.bounds := Rect(point.X - defaultHeight,
+          point.Y - defaultHeight, point.X + defaultHeight,
+          point.Y + defaultHeight);
+        tempBlock.blockType := Teleport;
+        AddBlock(blocks, tempBlock);
+      end;
   end;
+
+  DrawAll(pbWorkingArea.Canvas, blocks);
 end;
 
 procedure TfrmMain.pbWorkingAreaDragOver(Sender, Source: TObject; X, Y: Integer;
   State: TDragState; var Accept: Boolean);
 begin
-  exit;
+  Exit;
 end;
 
 procedure TfrmMain.pbWorkingAreaMouseDown(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 begin
-  paintMode := true;
-end;
-
-procedure TfrmMain.pbWorkingAreaMouseMove(Sender: TObject; Shift: TShiftState;
-  X, Y: Integer);
-begin
-  if paintMode then
-  begin
-    //pbWorkingArea.Canvas.MoveTo(x-1, y-1);
-    //pbWorkingArea.Canvas.LineTo(x, y);
-    pbWorkingArea.Canvas.Rectangle(X, Y, X+10, Y+10);
+  case Button of
+    mbLeft:
+      begin
+        if GetIdByCoord(blocks, lines, labels, Point(x, y)) <> -1 then
+          
+      end;
   end;
 end;
 
-procedure TfrmMain.pbWorkingAreaMouseUp(Sender: TObject; Button: TMouseButton;
-  Shift: TShiftState; X, Y: Integer);
+procedure TfrmMain.ScrollBox1MouseWheel(Sender: TObject; Shift: TShiftState;
+  WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
 begin
-  paintMode := false;
+  Exit;
 end;
 
 end.

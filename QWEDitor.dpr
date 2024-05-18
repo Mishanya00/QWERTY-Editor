@@ -4,7 +4,8 @@ uses
   Vcl.Forms,
   uMain in 'uMain.pas' {frmMain},
   DataStructures in 'DataStructures.pas',
-  SourceListing in 'SourceListing.pas' {frmDelphiListing};
+  SourceListing in 'SourceListing.pas' {frmDelphiListing},
+  DrawSymbols in 'DrawSymbols.pas';
 
 {$R *.res}
 
