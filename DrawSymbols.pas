@@ -14,6 +14,7 @@ procedure DrawAll(canva: TCanvas; blocks: PBlock);
 procedure DrawProcessSymbol(canva: TCanvas; bounds: TRect);
 procedure DrawSelection(canva: TCanvas; bounds: TRect);
 procedure DrawTeleportSymbol(canva: TCanvas; bounds: TRect);
+procedure DrawTerminatorSymbol(canva: TCanvas; bounds: TRect);
 
 procedure InitDrawingProperties();
 procedure UpdateCanvaAttributes(canva: TCanvas);
@@ -57,6 +58,13 @@ begin
 end;
 
 procedure DrawProcessSymbol(canva: TCanvas; bounds: TRect);
+begin
+
+  canva.Rectangle(bounds);
+
+end;
+
+procedure DrawTerminatorSymbol(canva: TCanvas; bounds: TRect);
 begin
 
   canva.Rectangle(bounds);
