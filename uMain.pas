@@ -78,6 +78,11 @@ type
     procedure ScrollBox1MouseWheel(Sender: TObject; Shift: TShiftState;
       WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
     procedure pbWorkingAreaPaint(Sender: TObject);
+    procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+    procedure pbWorkingAreaMouseUp(Sender: TObject; Button: TMouseButton;
+      Shift: TShiftState; X, Y: Integer);
+    procedure pbWorkingAreaMouseMove(Sender: TObject; Shift: TShiftState;
+      X, Y: Integer);
 
   private
     paintMode: Boolean;
@@ -97,15 +102,19 @@ var
   labels: PText;
   lines: PLine;
 
-  defaultWidth: integer = 50;
-  defaultHeight: integer = 25;
+  defaultWidth: Integer = 50;
+  defaultHeight: Integer = 25;
 
-  workingAreaWidth: integer = 3000;
-  workingAreaHeight: integer = 3000;
+  workingAreaWidth: Integer = 3000;
+  workingAreaHeight: Integer = 3000;
+
+  startDraggingPoint: TPoint;
+  finishDraggingPoint: TPoint;
+  draggingTicks: Integer;
 
   fDragging: Boolean;
   fSelection: Boolean; // Process of selecting items inside the area
-  FMayDrag:  Boolean;
+  FMayDrag: Boolean;
 
 procedure InitTags(); forward;
 
@@ -199,6 +208,17 @@ begin
   imgTeleport.Tag := 6;
 end;
 
+procedure TfrmMain.FormKeyDown(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+  case Key of
+    VK_DELETE:
+      RemoveSelectedSymbols(pbWorkingArea.Canvas, blocks, labels, lines);
+  end;
+
+  pbWorkingArea.Invalidate;
+end;
+
 procedure TfrmMain.imgTerminatorMouseDown(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 begin
@@ -226,6 +246,14 @@ begin
 
   // Numbers equal the value of the corresponding tag
   case (Source as TImage).Tag of
+    1:
+      begin
+        tempBlock.bounds := Rect(point.X - defaultWidth,
+          point.Y - defaultHeight, point.X + defaultWidth,
+          point.Y + defaultHeight);
+        tempBlock.blockType := Terminator;
+        AddBlock(blocks, tempBlock);
+      end;
     2:
       begin
         tempBlock.bounds := Rect(point.X - defaultWidth,
@@ -244,7 +272,7 @@ begin
       end;
   end;
 
-  DrawAll(pbWorkingArea.Canvas, blocks);
+  pbWorkingArea.Invalidate;
 end;
 
 procedure TfrmMain.pbWorkingAreaDragOver(Sender, Source: TObject; X, Y: Integer;
@@ -257,26 +285,65 @@ procedure TfrmMain.pbWorkingAreaMouseDown(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 
 var
-  id: integer;
+  id: Integer;
 
 begin
   case Button of
     mbLeft:
       begin
-        id := GetIdByCoord(blocks, lines, labels, Point(x, y));
+        id := GetIdByCoord(blocks, lines, labels, point(X, Y));
         if id <> -1 then
         begin
-          fMayDrag := true;
+          // fMayDrag := true;
+          fDragging := True;
+          draggingTicks := 0;
+          startDraggingPoint := (Sender as TControl)
+            .ScreenToClient(Mouse.CursorPos);
 
           if not(ssShift in Shift) then
-            UnselectSymbols(blocks, lines, labels);
+            UnselectSymbols(blocks, labels, lines);
 
           SelectSymbol(blocks, lines, labels, id);
-        end;
+        end
+        else
+          UnselectSymbols(blocks, labels, lines);
       end;
   end;
 
   pbWorkingArea.Invalidate; // To redraw the whole PaintBox
+end;
+
+procedure TfrmMain.pbWorkingAreaMouseMove(Sender: TObject; Shift: TShiftState;
+  X, Y: Integer);
+begin
+  if fDragging = True then
+  begin
+
+    {
+      if draggingTicks >= 10 then
+      begin
+      draggingTicks := 0;
+      pbWorkingArea.Invalidate;
+      end;
+    }
+
+    if (abs(X - startDraggingPoint.X) >= 20) or (abs(Y - startDraggingPoint.Y) >= 20)
+    then
+    begin
+      OffsetSelectedSymbols(pbWorkingArea.Canvas, blocks, labels, lines,
+        X - startDraggingPoint.X, Y - startDraggingPoint.Y);
+      startDraggingPoint := (Sender as TControl)
+        .ScreenToClient(Mouse.CursorPos);
+      pbWorkingArea.Invalidate;
+      //inc(draggingTicks);
+    end;
+  end;
+end;
+
+procedure TfrmMain.pbWorkingAreaMouseUp(Sender: TObject; Button: TMouseButton;
+  Shift: TShiftState; X, Y: Integer);
+begin
+  fDragging := False;
 end;
 
 procedure TfrmMain.pbWorkingAreaPaint(Sender: TObject);

@@ -59,11 +59,18 @@ type
 procedure AddBlock(blocks: PBlock; blockToAdd: TBlockInfo);
 function GetIdByCoord(blocks: PBlock; lines: PLine; labels: PText;
   point: TPoint): integer;
+
 function RemoveBlock(blocks: PBlock; idToRemove: integer): boolean;
+procedure RemoveSelectedSymbols(canva: TCanvas; blocks: PBlock; labels: PText;
+  lines: PLine);
+
 procedure SelectSymbol(blocks: PBlock; lines: PLine; labels: PText;
   id: integer);
+procedure OffsetSelectedSymbols(canva: TCanvas; blocks: PBlock; labels: PText;
+  lines: PLine; offsetX, offsetY: integer);
+
 procedure StartupInit(var blocks: PBlock; var lines: PLine; var labels: PText);
-procedure UnselectSymbols(blocks: PBlock; lines: PLine; labels: PText);
+procedure UnselectSymbols(blocks: PBlock; labels: PText; lines: PLine);
 
 implementation
 
@@ -113,6 +120,39 @@ begin
 
 end;
 
+procedure OffsetSelectedSymbols(canva: TCanvas; blocks: PBlock; labels: PText;
+  lines: PLine; offsetX, offsetY: integer);
+begin
+
+  while (blocks.next <> nil) do
+  begin
+    blocks := blocks.next;
+
+    if blocks.isSelected = true then
+    begin
+      Inc(blocks.info.bounds.Left, offsetX);
+      Inc(blocks.info.bounds.Right, offsetX);
+      Inc(blocks.info.bounds.Top, offsetY);
+      Inc(blocks.info.bounds.Bottom, offsetY);
+    end;
+  end;
+
+  {
+  while (labels.next <> nil) do
+  begin
+    labels := labels.next;
+
+    if labels.isSelected = true then
+    begin
+      Inc(labels.info.bounds.Left, offsetX);
+      Inc(labels.info.bounds.Right, offsetX);
+      Inc(labels.info.bounds.Top, offsetY);
+      Inc(labels.info.bounds.Bottom, offsetY);
+    end;
+  end;
+  }
+end;
+
 function RemoveBlock(blocks: PBlock; idToRemove: integer): boolean;
 
 var
@@ -141,6 +181,45 @@ begin
     if blocks.next <> nil then
       blocks := blocks.next;
 
+  end;
+
+end;
+
+procedure RemoveSelectedSymbols(canva: TCanvas; blocks: PBlock; labels: PText;
+  lines: PLine);
+
+var
+  temp: PBlock;
+  tempLabel: PText;
+
+begin
+
+  while (blocks.next <> nil) do
+  begin
+
+    if blocks.next.isSelected = true then
+    begin
+      temp := blocks.next;
+      blocks.next := blocks.next.next;
+      temp.next := nil;
+      Dispose(temp);
+    end
+    else
+      blocks := blocks.next;
+  end;
+
+  while (labels.next <> nil) do
+  begin
+
+    if labels.next.isSelected = true then
+    begin
+      tempLabel := labels.next;
+      labels.next := labels.next.next;
+      tempLabel.next := nil;
+      Dispose(tempLabel);
+    end
+    else
+      labels := labels.next;
   end;
 
 end;
@@ -197,7 +276,7 @@ begin
 
 end;
 
-procedure UnselectSymbols(blocks: PBlock; lines: PLine; labels: PText);
+procedure UnselectSymbols(blocks: PBlock; labels: PText; lines: PLine);
 begin
 
   while blocks.next <> nil do
@@ -215,8 +294,8 @@ begin
   {
     while lines.next <> nil do
     begin
-      lines := labels.next;
-      lines.isSelected := false;
+    lines := labels.next;
+    lines.isSelected := false;
     end;
   }
 

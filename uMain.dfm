@@ -12,6 +12,7 @@ object frmMain: TfrmMain
   Font.Style = []
   Menu = MainMenu1
   OnCreate = FormCreate
+  OnKeyDown = FormKeyDown
   TextHeight = 25
   object Splitter1: TSplitter
     Left = 225
@@ -109,7 +110,7 @@ object frmMain: TfrmMain
     ParentBackground = False
     TabOrder = 1
     OnDragOver = panelSymbolsDragOver
-    ExplicitLeft = -3
+    ExplicitHeight = 483
     object pnlDecision: TPanel
       Left = 150
       Top = 6
@@ -958,6 +959,8 @@ object frmMain: TfrmMain
     ParentColor = False
     TabOrder = 3
     OnMouseWheel = ScrollBox1MouseWheel
+    ExplicitWidth = 824
+    ExplicitHeight = 483
     object pbWorkingArea: TPaintBox
       Left = 0
       Top = 0
@@ -968,6 +971,8 @@ object frmMain: TfrmMain
       OnDragDrop = pbWorkingAreaDragDrop
       OnDragOver = pbWorkingAreaDragOver
       OnMouseDown = pbWorkingAreaMouseDown
+      OnMouseMove = pbWorkingAreaMouseMove
+      OnMouseUp = pbWorkingAreaMouseUp
       OnPaint = pbWorkingAreaPaint
     end
   end

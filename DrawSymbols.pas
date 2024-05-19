@@ -45,6 +45,8 @@ begin
     blocks := blocks.next;
 
     case blocks.info.blockType of
+      Terminator:
+        DrawTerminatorSymbol(canva, blocks.info.bounds);
       Process:
         DrawProcessSymbol(canva, blocks.info.bounds);
       Teleport:
@@ -67,7 +69,8 @@ end;
 procedure DrawTerminatorSymbol(canva: TCanvas; bounds: TRect);
 begin
 
-  canva.Rectangle(bounds);
+  canva.RoundRect(bounds.Left, bounds.Top, bounds.Right, bounds.Bottom,
+    (bounds.Right - bounds.Left) div 2, (bounds.Right - bounds.Left) div 2);
 
 end;
 
@@ -122,11 +125,11 @@ end;
 procedure SetSelectionCanvaAttributes(canva: TCanvas);
 begin
 
-  canva.Pen.Width   :=   selectionPenWidth;
-  canva.Pen.Color   :=   selectionPenColor;
-  canva.Pen.Style   :=   selectionPenStyle;
-  canva.Brush.Color :=   selectionBrushColor;
-  canva.Brush.Style :=   selectionBrushStyle;
+  canva.Pen.Width := selectionPenWidth;
+  canva.Pen.Color := selectionPenColor;
+  canva.Pen.Style := selectionPenStyle;
+  canva.Brush.Color := selectionBrushColor;
+  canva.Brush.Style := selectionBrushStyle;
 
 end;
 
