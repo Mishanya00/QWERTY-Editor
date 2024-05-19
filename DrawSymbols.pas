@@ -11,10 +11,13 @@ uses
 }
 
 procedure DrawAll(canva: TCanvas; blocks: PBlock);
-procedure DrawProcessSymbol(canva: TCanvas; bounds: TRect);
 procedure DrawSelection(canva: TCanvas; bounds: TRect);
-procedure DrawTeleportSymbol(canva: TCanvas; bounds: TRect);
 procedure DrawTerminatorSymbol(canva: TCanvas; bounds: TRect);
+procedure DrawProcessSymbol(canva: TCanvas; bounds: TRect);
+procedure DrawDecisionSymbol(canva: TCanvas; bounds: TRect);
+procedure DrawDataSymbol(canva: TCanvas; bounds: TRect);
+procedure DrawPredefinedSymbol(canva: TCanvas; bounds: TRect);
+procedure DrawTeleportSymbol(canva: TCanvas; bounds: TRect);
 
 procedure InitDrawingProperties();
 procedure UpdateCanvaAttributes(canva: TCanvas);
@@ -49,6 +52,12 @@ begin
         DrawTerminatorSymbol(canva, blocks.info.bounds);
       Process:
         DrawProcessSymbol(canva, blocks.info.bounds);
+      Decision:
+        DrawDecisionSymbol(canva, blocks.info.bounds);
+      Data:
+        DrawDataSymbol(canva, blocks.info.bounds);
+      Predefined:
+        DrawPredefinedSymbol(canva, blocks.info.bounds);
       Teleport:
         DrawTeleportSymbol(canva, blocks.info.bounds);
     end;
@@ -57,6 +66,30 @@ begin
       DrawSelection(canva, blocks.info.bounds);
   end;
 
+end;
+
+procedure DrawDataSymbol(canva: TCanvas; bounds: TRect);
+begin
+
+  with canva do
+  begin
+    Polygon([Point(bounds.Left + (bounds.Right - bounds.Left) div 8, bounds.Top),
+      Point(bounds.Right + (bounds.Right - bounds.Left) div 8, bounds.Top),
+      Point(bounds.Right - (bounds.Right - bounds.Left) div 8, bounds.Bottom),
+      Point(bounds.Left - (bounds.Right - bounds.Left) div 8, bounds.Bottom)]);
+  end;
+
+end;
+
+procedure DrawDecisionSymbol(canva: TCanvas; bounds: TRect);
+begin
+  with canva do
+  begin
+    Polygon([Point((bounds.Left + bounds.Right) div 2, bounds.Top),
+      Point(bounds.Right, (bounds.Bottom + bounds.Top) div 2),
+      Point((bounds.Left + bounds.Right) div 2, bounds.Bottom),
+      Point(bounds.Left, (bounds.Bottom + bounds.Top) div 2)]);
+  end;
 end;
 
 procedure DrawProcessSymbol(canva: TCanvas; bounds: TRect);
@@ -71,6 +104,25 @@ begin
 
   canva.RoundRect(bounds.Left, bounds.Top, bounds.Right, bounds.Bottom,
     (bounds.Right - bounds.Left) div 2, (bounds.Right - bounds.Left) div 2);
+
+end;
+
+procedure DrawPredefinedSymbol(canva: TCanvas; bounds: TRect);
+begin
+
+  with canva do
+  begin
+    Rectangle(bounds);
+    MoveTo(bounds.Left + 10, bounds.Top);
+    LineTo(bounds.Left + 10, bounds.Bottom);
+    MoveTo(bounds.Right - 10, bounds.Top);
+    LineTo(bounds.Right - 10, bounds.Bottom);
+    {
+      canva.Rectangle(bounds.Left + 2 * (bounds.Right - bounds.Left) div 3,
+      bounds.Top, bounds.Right - (bounds.Right - bounds.Left) div 3,
+      bounds.Bottom);
+    }
+  end;
 
 end;
 

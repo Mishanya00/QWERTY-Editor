@@ -262,6 +262,30 @@ begin
         tempBlock.blockType := Process;
         AddBlock(blocks, tempBlock);
       end;
+    3:
+      begin
+        tempBlock.bounds := Rect(point.X - defaultWidth,
+          point.Y - defaultHeight, point.X + defaultWidth,
+          point.Y + defaultHeight);
+        tempBlock.blockType := Decision;
+        AddBlock(blocks, tempBlock);
+      end;
+    4:
+      begin
+        tempBlock.bounds := Rect(point.X - defaultWidth,
+          point.Y - defaultHeight, point.X + defaultWidth,
+          point.Y + defaultHeight);
+        tempBlock.blockType := Data;
+        AddBlock(blocks, tempBlock);
+      end;
+    5:
+    begin
+        tempBlock.bounds := Rect(point.X - defaultWidth,
+          point.Y - defaultHeight, point.X + defaultWidth,
+          point.Y + defaultHeight);
+        tempBlock.blockType := Predefined;
+        AddBlock(blocks, tempBlock);
+    end;
     6:
       begin
         tempBlock.bounds := Rect(point.X - defaultHeight,
