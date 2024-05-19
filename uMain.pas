@@ -56,7 +56,6 @@ type
     imgTeleport: TImage;
     pnlData: TPanel;
     imgData: TImage;
-    pbWorkingArea: TImage;
     ScrollBox1: TScrollBox;
     Splitter1: TSplitter;
     ilFlowchartSymbols: TImageList;
@@ -64,6 +63,7 @@ type
     imgTerminator: TImage;
     pnlProcess: TPanel;
     imgProcess: TImage;
+    pbWorkingArea: TPaintBox;
     procedure pbWorkingAreaMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
     procedure FormCreate(Sender: TObject);
@@ -77,6 +77,7 @@ type
       State: TDragState; var Accept: Boolean);
     procedure ScrollBox1MouseWheel(Sender: TObject; Shift: TShiftState;
       WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
+    procedure pbWorkingAreaPaint(Sender: TObject);
 
   private
     paintMode: Boolean;
@@ -95,6 +96,12 @@ var
   blocks: PBlock;
   labels: PText;
   lines: PLine;
+
+  defaultWidth: integer = 50;
+  defaultHeight: integer = 25;
+
+  workingAreaWidth: integer = 3000;
+  workingAreaHeight: integer = 3000;
 
   fDragging: Boolean;
   fSelection: Boolean; // Process of selecting items inside the area
@@ -161,12 +168,17 @@ procedure TfrmMain.FormCreate(Sender: TObject);
 begin
 
   StartupInit(blocks, lines, labels);
+
+  pbWorkingArea.Width := workingAreaWidth;
+  pbWorkingArea.Height := workingAreaHeight;
+
   pbWorkingArea.Canvas.Pen.Color := clBlue;
   pbWorkingArea.Canvas.Pen.Mode := pmCopy;
   pbWorkingArea.Canvas.Brush.Style := bsSolid;
   pbWorkingArea.Canvas.Brush.Color := clBlue;
 
-  SetCanvaAttributes(pbWorkingArea.Canvas, 3, clBlack, clWhite, bsSolid);
+  InitDrawingProperties();
+  UpdateCanvaAttributes(pbWorkingArea.Canvas);
 
   // Assignment of actions' tags
   actCreate.Tag := 1;
@@ -243,14 +255,33 @@ end;
 
 procedure TfrmMain.pbWorkingAreaMouseDown(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
+
+var
+  id: integer;
+
 begin
   case Button of
     mbLeft:
       begin
-        if GetIdByCoord(blocks, lines, labels, Point(x, y)) <> -1 then
-          
+        id := GetIdByCoord(blocks, lines, labels, Point(x, y));
+        if id <> -1 then
+        begin
+          fMayDrag := true;
+
+          if not(ssShift in Shift) then
+            UnselectSymbols(blocks, lines, labels);
+
+          SelectSymbol(blocks, lines, labels, id);
+        end;
       end;
   end;
+
+  pbWorkingArea.Invalidate; // To redraw the whole PaintBox
+end;
+
+procedure TfrmMain.pbWorkingAreaPaint(Sender: TObject);
+begin
+  DrawAll(pbWorkingArea.Canvas, blocks);
 end;
 
 procedure TfrmMain.ScrollBox1MouseWheel(Sender: TObject; Shift: TShiftState;

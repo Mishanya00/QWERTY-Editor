@@ -109,7 +109,7 @@ object frmMain: TfrmMain
     ParentBackground = False
     TabOrder = 1
     OnDragOver = panelSymbolsDragOver
-    ExplicitHeight = 483
+    ExplicitLeft = -3
     object pnlDecision: TPanel
       Left = 150
       Top = 6
@@ -954,19 +954,21 @@ object frmMain: TfrmMain
     Width = 830
     Height = 492
     Align = alClient
+    Color = clWhite
+    ParentColor = False
     TabOrder = 3
     OnMouseWheel = ScrollBox1MouseWheel
-    ExplicitWidth = 824
-    ExplicitHeight = 483
-    object pbWorkingArea: TImage
+    object pbWorkingArea: TPaintBox
       Left = 0
       Top = 0
-      Width = 5000
-      Height = 5000
-      Stretch = True
+      Width = 300
+      Height = 300
+      Color = clWhite
+      ParentColor = False
       OnDragDrop = pbWorkingAreaDragDrop
       OnDragOver = pbWorkingAreaDragOver
       OnMouseDown = pbWorkingAreaMouseDown
+      OnPaint = pbWorkingAreaPaint
     end
   end
   object alMain: TActionList

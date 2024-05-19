@@ -21,6 +21,7 @@ type
   end;
 
   TBlock = record
+    isSelected: boolean;
     info: TBlockInfo;
     next: PBlock;
   end;
@@ -36,6 +37,7 @@ type
   end;
 
   TText = record
+    isSelected: boolean;
     info: TTextInfo;
     next: PText;
   end;
@@ -55,40 +57,43 @@ type
   end;
 
 procedure AddBlock(blocks: PBlock; blockToAdd: TBlockInfo);
-function GetIdByCoord(blocks: PBlock; lines: PLine; labels: PText; point: TPoint): integer;
+function GetIdByCoord(blocks: PBlock; lines: PLine; labels: PText;
+  point: TPoint): integer;
 function RemoveBlock(blocks: PBlock; idToRemove: integer): boolean;
+procedure SelectSymbol(blocks: PBlock; lines: PLine; labels: PText;
+  id: integer);
 procedure StartupInit(var blocks: PBlock; var lines: PLine; var labels: PText);
+procedure UnselectSymbols(blocks: PBlock; lines: PLine; labels: PText);
 
 implementation
 
-procedure AddBlock(blocks: PBlock; blockToAdd: TBlockInfo);
 var
-  id: integer;
-begin
+  CurrentID: integer;
 
-  inc(blocks.info.id);
-  id := blocks.info.id;
+procedure AddBlock(blocks: PBlock; blockToAdd: TBlockInfo);
+begin
+  inc(CurrentID);
 
   while blocks.next <> nil do
     blocks := blocks.next;
 
   New(blocks.next);
 
+  blocks.isSelected := false;
   blocks.next.info := blockToAdd;
-  blocks.next.info.id := id;
+  blocks.next.info.id := CurrentID;
   blocks.next.next := nil;
-
-  exit;
 end;
 
-function GetIdByCoord(blocks: PBlock; lines: PLine; labels: PText; point: TPoint): integer;
+function GetIdByCoord(blocks: PBlock; lines: PLine; labels: PText;
+  point: TPoint): integer;
 begin
 
   Result := -1;
 
   while blocks.next <> nil do
-  begin 
-    blocks := blocks.next; 
+  begin
+    blocks := blocks.next;
     if PtInRect(blocks.info.bounds, point) then
     begin
       Result := blocks.info.id;
@@ -97,12 +102,12 @@ begin
   end;
 
   while labels.next <> nil do
-  begin 
+  begin
     labels := labels.next;
   end;
 
   while lines.next <> nil do
-  begin 
+  begin
     lines := lines.next;
   end;
 
@@ -140,20 +145,80 @@ begin
 
 end;
 
+procedure SelectSymbol(blocks: PBlock; lines: PLine; labels: PText;
+  id: integer);
+begin
+
+  while blocks.next <> nil do
+  begin
+    blocks := blocks.next;
+    if blocks.info.id = id then
+    begin
+      blocks.isSelected := true;
+      exit;
+    end;
+  end;
+
+  while labels.next <> nil do
+  begin
+    labels := labels.next;
+    if labels.info.id = id then
+    begin
+      labels.isSelected := true;
+      exit;
+    end;
+  end;
+
+  {
+    while lines.next <> nil do
+    begin
+    labels := labels.next;
+    if labels.info.id = id then
+    begin
+    labels.isSelected := true;
+    exit;
+    end;
+    end;
+  }
+end;
+
 procedure StartupInit(var blocks: PBlock; var lines: PLine; var labels: PText);
 begin
 
+  CurrentID := 0;
   New(blocks);
   blocks.next := nil;
-  blocks.info.id := 0;
 
   New(lines);
   lines.next := nil;
-  lines.info.id := 0;
 
   New(labels);
   labels.next := nil;
-  labels.info.id := 0;
+
+end;
+
+procedure UnselectSymbols(blocks: PBlock; lines: PLine; labels: PText);
+begin
+
+  while blocks.next <> nil do
+  begin
+    blocks := blocks.next;
+    blocks.isSelected := false;
+  end;
+
+  while labels.next <> nil do
+  begin
+    labels := labels.next;
+    labels.isSelected := false;
+  end;
+
+  {
+    while lines.next <> nil do
+    begin
+      lines := labels.next;
+      lines.isSelected := false;
+    end;
+  }
 
 end;
 
