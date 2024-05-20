@@ -10,7 +10,7 @@ uses
   Vcl.ExtCtrls, Vcl.StdCtrls,
 
   // custom imports
-  DrawSymbols, DataStructures, SourceListing, Vcl.Imaging.jpeg,
+  DrawSymbols, DataStructures, SourceListing, FilesHandling, Vcl.Imaging.jpeg,
   Vcl.Imaging.pngimage;
 
 type
@@ -56,7 +56,7 @@ type
     imgTeleport: TImage;
     pnlData: TPanel;
     imgData: TImage;
-    ScrollBox1: TScrollBox;
+    sbMain: TScrollBox;
     Splitter1: TSplitter;
     ilFlowchartSymbols: TImageList;
     pnlTerminator: TPanel;
@@ -64,6 +64,7 @@ type
     pnlProcess: TPanel;
     imgProcess: TImage;
     pbWorkingArea: TPaintBox;
+    sdMain: TSaveDialog;
     procedure pbWorkingAreaMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
     procedure FormCreate(Sender: TObject);
@@ -75,19 +76,42 @@ type
     procedure pbWorkingAreaDragDrop(Sender, Source: TObject; X, Y: Integer);
     procedure pbWorkingAreaDragOver(Sender, Source: TObject; X, Y: Integer;
       State: TDragState; var Accept: Boolean);
-    procedure ScrollBox1MouseWheel(Sender: TObject; Shift: TShiftState;
-      WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
     procedure pbWorkingAreaPaint(Sender: TObject);
     procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure pbWorkingAreaMouseUp(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
     procedure pbWorkingAreaMouseMove(Sender: TObject; Shift: TShiftState;
       X, Y: Integer);
+    procedure sbMainMouseWheelDown(Sender: TObject; Shift: TShiftState;
+      MousePos: TPoint; var Handled: Boolean);
+    procedure sbMainMouseWheelUp(Sender: TObject; Shift: TShiftState;
+      MousePos: TPoint; var Handled: Boolean);
 
   private
     paintMode: Boolean;
     FFileName: string;
 
+    blocks: PBlock;
+    labels: PText;
+    lines: PLine;
+
+    defaultWidth: Integer;
+    defaultHeight: Integer;
+
+    // workingAreaWidth: Integer = 3000;
+    // workingAreaHeight: Integer = 3000;
+
+    startDraggingPoint: TPoint;
+    finishDraggingPoint: TPoint;
+    draggingTicks: Integer; // Probably remove due to irrelevance
+    draggingStep: Integer;
+
+    fDragging: Boolean;
+    fSelection: Boolean; // Process of selecting items inside the area
+    fMayDrag: Boolean;
+    fCentered: Boolean; // To prevent from centering after centering
+
+    selectedSymbolsCount: Integer;
   public
     { Public declarations }
   end;
@@ -96,25 +120,6 @@ var
   frmMain: TfrmMain;
 
 implementation
-
-var
-  blocks: PBlock;
-  labels: PText;
-  lines: PLine;
-
-  defaultWidth: Integer = 50;
-  defaultHeight: Integer = 25;
-
-  workingAreaWidth: Integer = 3000;
-  workingAreaHeight: Integer = 3000;
-
-  startDraggingPoint: TPoint;
-  finishDraggingPoint: TPoint;
-  draggingTicks: Integer;
-
-  fDragging: Boolean;
-  fSelection: Boolean; // Process of selecting items inside the area
-  FMayDrag: Boolean;
 
 procedure InitTags(); forward;
 
@@ -155,9 +160,17 @@ begin
           frmDelphiListing.Caption := 'Listing - ' + FFileName;
         end;
       SAVE_TAG:
-        ShowMessage('Save routine');
+        begin
+          ShowMessage('Save routine');
+        end;
       SAVE_AS_TAG:
-        ShowMessage('Save as routine');
+        begin
+          if not(sdMain.Execute()) then
+            Exit;
+          FFileName := sdMain.Files[0];
+          if SameText(ExtractFileExt(FFileName), '.png') then
+            SaveBitMapAsPng(FFileName, pbWorkingArea, blocks, labels, lines);
+        end;
       EXPORT_TAG:
         ShowMessage('Export routine');
 
@@ -178,13 +191,16 @@ begin
 
   StartupInit(blocks, lines, labels);
 
-  pbWorkingArea.Width := workingAreaWidth;
-  pbWorkingArea.Height := workingAreaHeight;
+  fCentered := false;
 
-  pbWorkingArea.Canvas.Pen.Color := clBlue;
-  pbWorkingArea.Canvas.Pen.Mode := pmCopy;
-  pbWorkingArea.Canvas.Brush.Style := bsSolid;
-  pbWorkingArea.Canvas.Brush.Color := clBlue;
+  selectedSymbolsCount := 0;
+
+  pbWorkingArea.Width := 3000;
+  pbWorkingArea.Height := 3000;
+
+  defaultWidth := 50;
+  defaultHeight := 25;
+  draggingStep := 30;
 
   InitDrawingProperties();
   UpdateCanvaAttributes(pbWorkingArea.Canvas);
@@ -279,13 +295,13 @@ begin
         AddBlock(blocks, tempBlock);
       end;
     5:
-    begin
+      begin
         tempBlock.bounds := Rect(point.X - defaultWidth,
           point.Y - defaultHeight, point.X + defaultWidth,
           point.Y + defaultHeight);
         tempBlock.blockType := Predefined;
         AddBlock(blocks, tempBlock);
-    end;
+      end;
     6:
       begin
         tempBlock.bounds := Rect(point.X - defaultHeight,
@@ -325,9 +341,13 @@ begin
             .ScreenToClient(Mouse.CursorPos);
 
           if not(ssShift in Shift) then
+          begin
             UnselectSymbols(blocks, labels, lines);
+            selectedSymbolsCount := 0;
+          end;
 
           SelectSymbol(blocks, lines, labels, id);
+          Inc(selectedSymbolsCount);
         end
         else
           UnselectSymbols(blocks, labels, lines);
@@ -339,28 +359,75 @@ end;
 
 procedure TfrmMain.pbWorkingAreaMouseMove(Sender: TObject; Shift: TShiftState;
   X, Y: Integer);
+
+var
+  centered: TPoint;
+
 begin
   if fDragging = True then
   begin
+    // Place to implement centering
+    if (abs(X - startDraggingPoint.X) >= draggingStep) or
+      (abs(Y - startDraggingPoint.Y) >= draggingStep) then
+    begin
 
-    {
-      if draggingTicks >= 10 then
+      if (selectedSymbolsCount > 1) or (fCentered = true) then
       begin
-      draggingTicks := 0;
+        fCentered := false;
+
+        OffsetSelectedSymbols(pbWorkingArea.Canvas, blocks, labels, lines,
+          X - startDraggingPoint.X, Y - startDraggingPoint.Y);
+        startDraggingPoint.X := x;
+        startDraggingPoint.Y := y;
+      end
+      else
+      begin
+        centered := GetNearestSymbolCoord(X, Y, draggingStep div 2, blocks);
+        if centered.X = 9999999 then
+        begin
+          centered.X := X - startDraggingPoint.X;
+          startDraggingPoint.X := X;
+        end
+        else
+        begin
+          fCentered := true;
+          //centered.X := centered.X +
+          startDraggingPoint.X := X + centered.X;
+        end;
+        if centered.Y = 9999999 then
+        begin
+          centered.Y := Y - startDraggingPoint.Y;
+          startDraggingPoint.Y := Y;
+        end
+        else
+        begin
+          fCentered := true;
+          startDraggingPoint.Y := Y + centered.Y;
+        end;
+
+        OffsetSelectedSymbols(pbWorkingArea.Canvas, blocks, labels, lines,
+          centered.X, centered.Y);
+      end;
+
       pbWorkingArea.Invalidate;
+    end;
+    {
+      if (abs(X - startDraggingPoint.X) >= draggingStep) or
+      (abs(Y - startDraggingPoint.Y) >= draggingStep) then
+      begin
+      OffsetSelectedSymbols(pbWorkingArea.Canvas, blocks, labels, lines,
+      X - startDraggingPoint.X, Y - startDraggingPoint.Y);
+
+      {
+      startDraggingPoint := (Sender as TControl)
+      .ScreenToClient(Mouse.CursorPos);
+    }{
+      startDraggingPoint.X := X;
+      startDraggingPoint.Y := y;
+      pbWorkingArea.Invalidate;
+      // inc(draggingTicks);
       end;
     }
-
-    if (abs(X - startDraggingPoint.X) >= 20) or (abs(Y - startDraggingPoint.Y) >= 20)
-    then
-    begin
-      OffsetSelectedSymbols(pbWorkingArea.Canvas, blocks, labels, lines,
-        X - startDraggingPoint.X, Y - startDraggingPoint.Y);
-      startDraggingPoint := (Sender as TControl)
-        .ScreenToClient(Mouse.CursorPos);
-      pbWorkingArea.Invalidate;
-      //inc(draggingTicks);
-    end;
   end;
 end;
 
@@ -372,13 +439,25 @@ end;
 
 procedure TfrmMain.pbWorkingAreaPaint(Sender: TObject);
 begin
-  DrawAll(pbWorkingArea.Canvas, blocks);
+  DrawAll(pbWorkingArea.Canvas, blocks, labels, lines);
 end;
 
-procedure TfrmMain.ScrollBox1MouseWheel(Sender: TObject; Shift: TShiftState;
-  WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
+procedure TfrmMain.sbMainMouseWheelDown(Sender: TObject; Shift: TShiftState;
+  MousePos: TPoint; var Handled: Boolean);
 begin
-  Exit;
+  if (ssShift in Shift) then
+    sbMain.HorzScrollBar.Position := sbMain.HorzScrollBar.Position + 10
+  else
+    sbMain.VertScrollBar.Position := sbMain.VertScrollBar.Position + 10;
+end;
+
+procedure TfrmMain.sbMainMouseWheelUp(Sender: TObject; Shift: TShiftState;
+  MousePos: TPoint; var Handled: Boolean);
+begin
+  if (ssShift in Shift) then
+    sbMain.HorzScrollBar.Position := sbMain.HorzScrollBar.Position - 10
+  else
+    sbMain.VertScrollBar.Position := sbMain.VertScrollBar.Position - 10;
 end;
 
 end.

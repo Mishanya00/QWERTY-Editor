@@ -10,7 +10,7 @@ uses
   penColorArg, brushColorArg: TColor; brushStyleArg: TBrushStyle);
 }
 
-procedure DrawAll(canva: TCanvas; blocks: PBlock);
+procedure DrawAll(canva: TCanvas; blocks: PBlock; labels: PText; lines: PLine);
 procedure DrawSelection(canva: TCanvas; bounds: TRect);
 procedure DrawTerminatorSymbol(canva: TCanvas; bounds: TRect);
 procedure DrawProcessSymbol(canva: TCanvas; bounds: TRect);
@@ -18,6 +18,8 @@ procedure DrawDecisionSymbol(canva: TCanvas; bounds: TRect);
 procedure DrawDataSymbol(canva: TCanvas; bounds: TRect);
 procedure DrawPredefinedSymbol(canva: TCanvas; bounds: TRect);
 procedure DrawTeleportSymbol(canva: TCanvas; bounds: TRect);
+
+procedure DrawVertLine(canva: TCanvas; x: integer);
 
 procedure InitDrawingProperties();
 procedure UpdateCanvaAttributes(canva: TCanvas);
@@ -40,7 +42,7 @@ var
   selectionPenWidth: integer;
   selectionMargin: integer;
 
-procedure DrawAll(canva: TCanvas; blocks: PBlock);
+procedure DrawAll(canva: TCanvas; blocks: PBlock; labels: PText; lines: PLine);
 begin
 
   while blocks.next <> nil do
@@ -89,6 +91,15 @@ begin
       Point(bounds.Right, (bounds.Bottom + bounds.Top) div 2),
       Point((bounds.Left + bounds.Right) div 2, bounds.Bottom),
       Point(bounds.Left, (bounds.Bottom + bounds.Top) div 2)]);
+  end;
+end;
+
+procedure DrawVertLine(canva: TCanvas; x: integer);
+begin
+  with canva do
+  begin
+    MoveTo(x, 0);
+    LineTo(x, ClipRect.Bottom);
   end;
 end;
 

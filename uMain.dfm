@@ -949,7 +949,7 @@ object frmMain: TfrmMain
     ExplicitTop = 535
     ExplicitWidth = 1052
   end
-  object ScrollBox1: TScrollBox
+  object sbMain: TScrollBox
     Left = 228
     Top = 52
     Width = 830
@@ -958,9 +958,10 @@ object frmMain: TfrmMain
     Color = clWhite
     ParentColor = False
     TabOrder = 3
-    OnMouseWheel = ScrollBox1MouseWheel
-    ExplicitWidth = 824
-    ExplicitHeight = 483
+    OnMouseWheelDown = sbMainMouseWheelDown
+    OnMouseWheelUp = sbMainMouseWheelUp
+    ExplicitLeft = 233
+    ExplicitTop = 44
     object pbWorkingArea: TPaintBox
       Left = 0
       Top = 0
@@ -1357,5 +1358,9 @@ object frmMain: TfrmMain
   end
   object ilFlowchartSymbols: TImageList
     Left = 880
+  end
+  object sdMain: TSaveDialog
+    Filter = 'Flowchart File|*.rog|Flowchart Image|*.png'
+    Left = 816
   end
 end

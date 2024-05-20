@@ -5,7 +5,8 @@ uses
   uMain in 'uMain.pas' {frmMain},
   DataStructures in 'DataStructures.pas',
   SourceListing in 'SourceListing.pas' {frmDelphiListing},
-  DrawSymbols in 'DrawSymbols.pas';
+  DrawSymbols in 'DrawSymbols.pas',
+  FilesHandling in 'FilesHandling.pas';
 
 {$R *.res}
 

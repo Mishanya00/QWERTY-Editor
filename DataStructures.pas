@@ -57,8 +57,10 @@ type
   end;
 
 procedure AddBlock(blocks: PBlock; blockToAdd: TBlockInfo);
+
 function GetIdByCoord(blocks: PBlock; lines: PLine; labels: PText;
   point: TPoint): integer;
+function GetNearestSymbolCoord(x, y, segment: integer; blocks: PBlock): TPoint;
 
 function RemoveBlock(blocks: PBlock; idToRemove: integer): boolean;
 procedure RemoveSelectedSymbols(canva: TCanvas; blocks: PBlock; labels: PText;
@@ -120,6 +122,50 @@ begin
 
 end;
 
+function GetNearestSymbolCoord(x, y, segment: integer; blocks: PBlock): TPoint;
+var
+  yMin: integer;
+  xMin: integer;
+  centerX: integer;
+  centerY: integer;
+begin
+
+  Result.x := 9999999;
+  Result.y := 9999999;
+  yMin := 9999999;
+  xMin := 9999999;
+
+  while blocks.next <> nil do
+  begin
+
+    blocks := blocks.next;
+    centerX := (blocks.info.bounds.right + blocks.info.bounds.left) div 2;
+    centerY := (blocks.info.bounds.top + blocks.info.bounds.bottom) div 2;
+
+    // Selected block cannot be centered on itself
+    if (centerX < x + segment) and (centerX > x - segment) and
+      (blocks.isSelected = false) then
+    begin
+      if (abs(centerY - y)) < yMin then
+      begin
+        yMin := abs(centerY - y);
+        Result.x := centerX;
+      end;
+    end
+    else if (centerY < y + segment) and (centerY > y - segment) and
+      (blocks.isSelected = false) then
+    begin
+      if (abs(centerX - x)) < xMin then
+      begin
+        xMin := abs(centerX - x);
+        Result.y := centerY;
+      end;
+    end;
+
+  end;
+
+end;
+
 procedure OffsetSelectedSymbols(canva: TCanvas; blocks: PBlock; labels: PText;
   lines: PLine; offsetX, offsetY: integer);
 begin
@@ -130,26 +176,26 @@ begin
 
     if blocks.isSelected = true then
     begin
-      Inc(blocks.info.bounds.Left, offsetX);
-      Inc(blocks.info.bounds.Right, offsetX);
-      Inc(blocks.info.bounds.Top, offsetY);
-      Inc(blocks.info.bounds.Bottom, offsetY);
+      inc(blocks.info.bounds.left, offsetX);
+      inc(blocks.info.bounds.right, offsetX);
+      inc(blocks.info.bounds.top, offsetY);
+      inc(blocks.info.bounds.bottom, offsetY);
     end;
   end;
 
   {
-  while (labels.next <> nil) do
-  begin
+    while (labels.next <> nil) do
+    begin
     labels := labels.next;
 
     if labels.isSelected = true then
     begin
-      Inc(labels.info.bounds.Left, offsetX);
-      Inc(labels.info.bounds.Right, offsetX);
-      Inc(labels.info.bounds.Top, offsetY);
-      Inc(labels.info.bounds.Bottom, offsetY);
+    Inc(labels.info.bounds.Left, offsetX);
+    Inc(labels.info.bounds.Right, offsetX);
+    Inc(labels.info.bounds.Top, offsetY);
+    Inc(labels.info.bounds.Bottom, offsetY);
     end;
-  end;
+    end;
   }
 end;
 
