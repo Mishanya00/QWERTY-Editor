@@ -55,9 +55,6 @@ Coordinates=536,331,40,36
 [ToolButton2]
 Coordinates=10,282,84,36
 
-[ToolButton7]
-Coordinates=332,214,84,36
-
 [StatusBar1]
 Coordinates=142,146,78,58
 
@@ -98,7 +95,7 @@ Coordinates=232,439,57,36
 Coordinates=163,439,65,36
 
 []
-Coordinates=425,146,94,58
+Coordinates=332,214,84,36
 Visible=True
 
 [imgData]

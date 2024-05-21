@@ -40,7 +40,6 @@ type
     ToolButton3: TToolButton;
     ToolButton4: TToolButton;
     ToolButton5: TToolButton;
-    ToolButton7: TToolButton;
     panelSymbols: TPanel;
     actPaste: TAction;
     StatusBar1: TStatusBar;
@@ -65,6 +64,21 @@ type
     imgProcess: TImage;
     pbWorkingArea: TPaintBox;
     sdMain: TSaveDialog;
+    ToolButton6: TToolButton;
+    ToolButton7: TToolButton;
+    ToolButton8: TToolButton;
+    ToolButton9: TToolButton;
+    ToolButton10: TToolButton;
+    ToolButton11: TToolButton;
+    actLinesMode: TAction;
+    actNormalMode: TAction;
+    ToolButton12: TToolButton;
+    actTextMode: TAction;
+    ToolButton13: TToolButton;
+    N11: TMenuItem;
+    N12: TMenuItem;
+    N13: TMenuItem;
+    N14: TMenuItem;
     procedure pbWorkingAreaMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
     procedure FormCreate(Sender: TObject);
@@ -88,7 +102,7 @@ type
       MousePos: TPoint; var Handled: Boolean);
 
   private
-    paintMode: Boolean;
+    currentMode: TState;
     FFileName: string;
 
     blocks: PBlock;
@@ -101,14 +115,16 @@ type
     // workingAreaWidth: Integer = 3000;
     // workingAreaHeight: Integer = 3000;
 
+    tempLine: TLineInfo;
+
     startDraggingPoint: TPoint;
-    finishDraggingPoint: TPoint;
-    draggingTicks: Integer; // Probably remove due to irrelevance
     draggingStep: Integer;
 
+    startLiningPoint: TPoint;
+
+    fLining: Boolean;     // Process of creating lines in lines mode
     fDragging: Boolean;
-    fSelection: Boolean; // Process of selecting items inside the area
-    fMayDrag: Boolean;
+    fSelecting: Boolean; // Process of selecting items inside the area
     fCentered: Boolean; // To prevent from centering after centering
 
     selectedSymbolsCount: Integer;
@@ -132,6 +148,9 @@ const
   CUT_TAG = 6;
   COPY_TAG = 7;
   PASTE_TAG = 8;
+  NORMAL_MODE_TAG = 9;
+  LINES_MODE_TAG = 10;
+  TEXT_MODE_TAG = 11;
 
 {$R *.dfm}
 
@@ -164,6 +183,8 @@ begin
           ShowMessage('Save routine');
         end;
       SAVE_AS_TAG:
+        ShowMessage('Save as routine');
+      EXPORT_TAG:
         begin
           if not(sdMain.Execute()) then
             Exit;
@@ -171,8 +192,6 @@ begin
           if SameText(ExtractFileExt(FFileName), '.png') then
             SaveBitMapAsPng(FFileName, pbWorkingArea, blocks, labels, lines);
         end;
-      EXPORT_TAG:
-        ShowMessage('Export routine');
 
       CUT_TAG:
         ShowMessage('CUT routine');
@@ -180,6 +199,20 @@ begin
         ShowMessage('COPY routine');
       PASTE_TAG:
         ShowMessage('PASTE routine');
+      NORMAL_MODE_TAG:
+        begin
+          currentMode := stNormal;
+          SetSymbolsState(stNormal, blocks, labels, lines);
+          pbWorkingArea.Invalidate;
+        end;
+      LINES_MODE_TAG:
+        begin
+          currentMode := stLines;
+          SetSymbolsState(stLines, blocks, labels, lines);
+          pbWorkingArea.Invalidate;
+        end;
+      TEXT_MODE_TAG:
+        ShowMessage('Text mode');
     end;
 
   end;
@@ -203,7 +236,7 @@ begin
   draggingStep := 30;
 
   InitDrawingProperties();
-  UpdateCanvaAttributes(pbWorkingArea.Canvas);
+  SetCanvaAttributes(pbWorkingArea.Canvas, stNormal);
 
   // Assignment of actions' tags
   actCreate.Tag := 1;
@@ -214,6 +247,8 @@ begin
   actCut.Tag := 6;
   actCopy.Tag := 7;
   actPaste.Tag := 8;
+  actNormalMode.Tag := 9;
+  actLinesMode.Tag := 10;
 
   // Assignment of image-symbols tags
   imgTerminator.Tag := 1;
@@ -247,7 +282,7 @@ begin
   if Source.ClassName = 'TImage' then
     Accept := True
   else
-    Accept := False;
+    Accept := false;
 end;
 
 procedure TfrmMain.pbWorkingAreaDragDrop(Sender, Source: TObject;
@@ -258,55 +293,50 @@ var
   tempBlock: TBlockInfo;
 
 begin
-  point := (Sender as TControl).ScreenToClient(Mouse.CursorPos);
+  {
+    point := (Sender as TControl).ScreenToClient(Mouse.CursorPos);
+    tempBlock.bounds := Rect(point.X - defaultWidth, point.Y - defaultHeight,
+    point.X + defaultWidth, point.Y + defaultHeight);
+    tempBlock.center := point;
+  }
+
+  tempBlock.bounds := Rect(X - defaultWidth, Y - defaultHeight,
+    X + defaultWidth, Y + defaultHeight);
+  tempBlock.center.X := X;
+  tempBlock.center.Y := Y;
+  SetSymbolsState(stNormal, blocks, labels, lines);
 
   // Numbers equal the value of the corresponding tag
   case (Source as TImage).Tag of
     1:
       begin
-        tempBlock.bounds := Rect(point.X - defaultWidth,
-          point.Y - defaultHeight, point.X + defaultWidth,
-          point.Y + defaultHeight);
         tempBlock.blockType := Terminator;
         AddBlock(blocks, tempBlock);
       end;
     2:
       begin
-        tempBlock.bounds := Rect(point.X - defaultWidth,
-          point.Y - defaultHeight, point.X + defaultWidth,
-          point.Y + defaultHeight);
         tempBlock.blockType := Process;
         AddBlock(blocks, tempBlock);
       end;
     3:
       begin
-        tempBlock.bounds := Rect(point.X - defaultWidth,
-          point.Y - defaultHeight, point.X + defaultWidth,
-          point.Y + defaultHeight);
         tempBlock.blockType := Decision;
         AddBlock(blocks, tempBlock);
       end;
     4:
       begin
-        tempBlock.bounds := Rect(point.X - defaultWidth,
-          point.Y - defaultHeight, point.X + defaultWidth,
-          point.Y + defaultHeight);
         tempBlock.blockType := Data;
         AddBlock(blocks, tempBlock);
       end;
     5:
       begin
-        tempBlock.bounds := Rect(point.X - defaultWidth,
-          point.Y - defaultHeight, point.X + defaultWidth,
-          point.Y + defaultHeight);
         tempBlock.blockType := Predefined;
         AddBlock(blocks, tempBlock);
       end;
     6:
       begin
-        tempBlock.bounds := Rect(point.X - defaultHeight,
-          point.Y - defaultHeight, point.X + defaultHeight,
-          point.Y + defaultHeight);
+        tempBlock.bounds := Rect(X - defaultHeight, Y - defaultHeight,
+          X + defaultHeight, Y + defaultHeight);
         tempBlock.blockType := Teleport;
         AddBlock(blocks, tempBlock);
       end;
@@ -328,30 +358,56 @@ var
   id: Integer;
 
 begin
-  case Button of
-    mbLeft:
+  case currentMode of
+
+    stNormal:
       begin
-        id := GetIdByCoord(blocks, lines, labels, point(X, Y));
-        if id <> -1 then
-        begin
-          // fMayDrag := true;
-          fDragging := True;
-          draggingTicks := 0;
-          startDraggingPoint := (Sender as TControl)
-            .ScreenToClient(Mouse.CursorPos);
 
-          if not(ssShift in Shift) then
-          begin
-            UnselectSymbols(blocks, labels, lines);
-            selectedSymbolsCount := 0;
-          end;
+        case Button of
+          mbLeft:
+            begin
+              id := GetIdByCoord(blocks, lines, labels, point(X, Y));
+              if id <> -1 then
+              begin
+                fDragging := True;
 
-          SelectSymbol(blocks, lines, labels, id);
-          Inc(selectedSymbolsCount);
-        end
-        else
-          UnselectSymbols(blocks, labels, lines);
+                { Second Variant to get mouse coordinates:
+                  startDraggingPoint := (Sender as TControl)
+                  .ScreenToClient(Mouse.CursorPos);
+                }
+
+                startDraggingPoint.X := X;
+                startDraggingPoint.Y := Y;
+
+                if not(ssShift in Shift) then
+                begin
+                  SetSymbolsState(stNormal, blocks, labels, lines);
+                  selectedSymbolsCount := 0;
+                end;
+
+                SelectSymbol(blocks, lines, labels, id);
+                Inc(selectedSymbolsCount);
+              end
+              else
+                SetSymbolsState(stNormal, blocks, labels, lines);
+            end;
+        end;
+
       end;
+
+    stLines:
+    begin
+
+      case Button of
+        mbLeft:
+        begin
+          fLining := true;
+          startLiningPoint.X := X;
+          startLiningPoint.Y := Y;
+        end;
+      end;
+
+    end;
   end;
 
   pbWorkingArea.Invalidate; // To redraw the whole PaintBox
@@ -366,75 +422,81 @@ var
 begin
   if fDragging = True then
   begin
-    // Place to implement centering
-    if (abs(X - startDraggingPoint.X) >= draggingStep) or
-      (abs(Y - startDraggingPoint.Y) >= draggingStep) then
-    begin
-
-      if (selectedSymbolsCount > 1) or (fCentered = true) then
-      begin
-        fCentered := false;
-
-        OffsetSelectedSymbols(pbWorkingArea.Canvas, blocks, labels, lines,
-          X - startDraggingPoint.X, Y - startDraggingPoint.Y);
-        startDraggingPoint.X := x;
-        startDraggingPoint.Y := y;
-      end
-      else
-      begin
-        centered := GetNearestSymbolCoord(X, Y, draggingStep div 2, blocks);
-        if centered.X = 9999999 then
-        begin
-          centered.X := X - startDraggingPoint.X;
-          startDraggingPoint.X := X;
-        end
-        else
-        begin
-          fCentered := true;
-          //centered.X := centered.X +
-          startDraggingPoint.X := X + centered.X;
-        end;
-        if centered.Y = 9999999 then
-        begin
-          centered.Y := Y - startDraggingPoint.Y;
-          startDraggingPoint.Y := Y;
-        end
-        else
-        begin
-          fCentered := true;
-          startDraggingPoint.Y := Y + centered.Y;
-        end;
-
-        OffsetSelectedSymbols(pbWorkingArea.Canvas, blocks, labels, lines,
-          centered.X, centered.Y);
-      end;
-
-      pbWorkingArea.Invalidate;
-    end;
     {
+      // Place to implement centering
       if (abs(X - startDraggingPoint.X) >= draggingStep) or
       (abs(Y - startDraggingPoint.Y) >= draggingStep) then
       begin
+
+      if (selectedSymbolsCount > 1) or (fCentered = True) then
+      begin
+      fCentered := false;
+
       OffsetSelectedSymbols(pbWorkingArea.Canvas, blocks, labels, lines,
       X - startDraggingPoint.X, Y - startDraggingPoint.Y);
-
-      {
-      startDraggingPoint := (Sender as TControl)
-      .ScreenToClient(Mouse.CursorPos);
-    }{
       startDraggingPoint.X := X;
-      startDraggingPoint.Y := y;
+      startDraggingPoint.Y := Y;
+      end
+      else
+      begin
+      centered := GetNearestSymbolCoord(draggingStep div 2, blocks);
+      if centered.X = 9999999 then
+      begin
+      centered.X := X - startDraggingPoint.X;
+      startDraggingPoint.X := X;
+      end
+      else
+      begin
+      fCentered := True;
+      // centered.X := centered.X +
+      startDraggingPoint.X := X + centered.X;
+      end;
+      if centered.Y = 9999999 then
+      begin
+      centered.Y := Y - startDraggingPoint.Y;
+      startDraggingPoint.Y := Y;
+      end
+      else
+      begin
+      fCentered := True;
+      startDraggingPoint.Y := Y + centered.Y;
+      end;
+
+      OffsetSelectedSymbols(pbWorkingArea.Canvas, blocks, labels, lines,
+      centered.X, centered.Y);
+      end;
+
       pbWorkingArea.Invalidate;
-      // inc(draggingTicks);
       end;
     }
+    if (abs(X - startDraggingPoint.X) >= draggingStep) or
+      (abs(Y - startDraggingPoint.Y) >= draggingStep) then
+    begin
+      OffsetSelectedSymbols(pbWorkingArea.Canvas, blocks, labels, lines,
+        X - startDraggingPoint.X, Y - startDraggingPoint.Y);
+
+      {
+        startDraggingPoint := (Sender as TControl)
+        .ScreenToClient(Mouse.CursorPos);
+      }
+      startDraggingPoint.X := X;
+      startDraggingPoint.Y := Y;
+      pbWorkingArea.Invalidate;
+    end;
+  end;
+
+  if fLining = true then
+  begin
+
   end;
 end;
 
 procedure TfrmMain.pbWorkingAreaMouseUp(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 begin
-  fDragging := False;
+  fDragging := false;
+  fLining := false;
+  fSelecting := false;
 end;
 
 procedure TfrmMain.pbWorkingAreaPaint(Sender: TObject);

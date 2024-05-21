@@ -7,6 +7,7 @@ uses
 
 type
 
+  TState = (stNormal, stSelected, stLines);
   TLineType = (Straight, Arrow, DualArrow);
   TBlockType = (Terminator, Process, Decision, Data, Predefined, Teleport);
 
@@ -18,10 +19,11 @@ type
     id: integer;
     blockType: TBlockType;
     bounds: TRect;
+    center: TPoint;
   end;
 
   TBlock = record
-    isSelected: boolean;
+    state: TState;
     info: TBlockInfo;
     next: PBlock;
   end;
@@ -37,7 +39,7 @@ type
   end;
 
   TText = record
-    isSelected: boolean;
+    state: TState;
     info: TTextInfo;
     next: PText;
   end;
@@ -60,7 +62,7 @@ procedure AddBlock(blocks: PBlock; blockToAdd: TBlockInfo);
 
 function GetIdByCoord(blocks: PBlock; lines: PLine; labels: PText;
   point: TPoint): integer;
-function GetNearestSymbolCoord(x, y, segment: integer; blocks: PBlock): TPoint;
+function GetNearestSymbolCoord(segment: integer; blocks: PBlock): TPoint;
 
 function RemoveBlock(blocks: PBlock; idToRemove: integer): boolean;
 procedure RemoveSelectedSymbols(canva: TCanvas; blocks: PBlock; labels: PText;
@@ -73,6 +75,7 @@ procedure OffsetSelectedSymbols(canva: TCanvas; blocks: PBlock; labels: PText;
 
 procedure StartupInit(var blocks: PBlock; var lines: PLine; var labels: PText);
 procedure UnselectSymbols(blocks: PBlock; labels: PText; lines: PLine);
+procedure SetSymbolsState(state: TState; blocks: PBlock; labels: PText; lines: PLine);
 
 implementation
 
@@ -88,7 +91,7 @@ begin
 
   New(blocks.next);
 
-  blocks.isSelected := false;
+  blocks.state := stNormal;
   blocks.next.info := blockToAdd;
   blocks.next.info.id := CurrentID;
   blocks.next.next := nil;
@@ -122,8 +125,9 @@ begin
 
 end;
 
-function GetNearestSymbolCoord(x, y, segment: integer; blocks: PBlock): TPoint;
+function GetNearestSymbolCoord(segment: integer; blocks: PBlock): TPoint;
 var
+  x, y: integer;
   yMin: integer;
   xMin: integer;
   centerX: integer;
@@ -135,6 +139,20 @@ begin
   yMin := 9999999;
   xMin := 9999999;
 
+  // Search of selected block
+  while blocks.next <> nil do
+  begin
+
+    blocks := blocks.next;
+    if blocks.state = stSelected then
+    begin
+      x := (blocks.info.bounds.right + blocks.info.bounds.left) div 2;
+      y := (blocks.info.bounds.top + blocks.info.bounds.bottom) div 2;
+      break;
+    end;
+
+  end;
+
   while blocks.next <> nil do
   begin
 
@@ -144,7 +162,7 @@ begin
 
     // Selected block cannot be centered on itself
     if (centerX < x + segment) and (centerX > x - segment) and
-      (blocks.isSelected = false) then
+      (blocks.state <> stSelected) then
     begin
       if (abs(centerY - y)) < yMin then
       begin
@@ -153,7 +171,7 @@ begin
       end;
     end
     else if (centerY < y + segment) and (centerY > y - segment) and
-      (blocks.isSelected = false) then
+      (blocks.state <> stSelected) then
     begin
       if (abs(centerX - x)) < xMin then
       begin
@@ -174,7 +192,7 @@ begin
   begin
     blocks := blocks.next;
 
-    if blocks.isSelected = true then
+    if blocks.state = stSelected then
     begin
       inc(blocks.info.bounds.left, offsetX);
       inc(blocks.info.bounds.right, offsetX);
@@ -243,7 +261,7 @@ begin
   while (blocks.next <> nil) do
   begin
 
-    if blocks.next.isSelected = true then
+    if blocks.next.state = stSelected then
     begin
       temp := blocks.next;
       blocks.next := blocks.next.next;
@@ -257,7 +275,7 @@ begin
   while (labels.next <> nil) do
   begin
 
-    if labels.next.isSelected = true then
+    if labels.next.state = stSelected then
     begin
       tempLabel := labels.next;
       labels.next := labels.next.next;
@@ -279,7 +297,7 @@ begin
     blocks := blocks.next;
     if blocks.info.id = id then
     begin
-      blocks.isSelected := true;
+      blocks.state := stSelected;
       exit;
     end;
   end;
@@ -289,7 +307,7 @@ begin
     labels := labels.next;
     if labels.info.id = id then
     begin
-      labels.isSelected := true;
+      labels.state := stSelected;
       exit;
     end;
   end;
@@ -306,6 +324,32 @@ begin
     end;
   }
 end;
+
+procedure SetSymbolsState(state: TState; blocks: PBlock; labels: PText; lines: PLine);
+begin
+
+  while blocks.next <> nil do
+  begin
+    blocks := blocks.next;
+    blocks.state := state;
+  end;
+
+  while labels.next <> nil do
+  begin
+    labels := labels.next;
+    labels.state := state;
+  end;
+
+  {
+    while lines.next <> nil do
+    begin
+    lines := labels.next;
+    lines.isSelected := false;
+    end;
+  }
+
+end;
+
 
 procedure StartupInit(var blocks: PBlock; var lines: PLine; var labels: PText);
 begin
@@ -328,13 +372,13 @@ begin
   while blocks.next <> nil do
   begin
     blocks := blocks.next;
-    blocks.isSelected := false;
+    blocks.state := stNormal;
   end;
 
   while labels.next <> nil do
   begin
     labels := labels.next;
-    labels.isSelected := false;
+    labels.state := stNormal;
   end;
 
   {

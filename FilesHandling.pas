@@ -18,7 +18,9 @@ begin
   interimBitmap := TBitmap.Create;
   try
     interimBitmap.SetSize(pbToExport.Width, pbToExport.Height);
-    DrawAll(pbToExport.Canvas, blocks, labels, lines);
+    SetSymbolsState(stNormal, blocks, labels, lines);
+    SetCanvaAttributes(interimBitmap.Canvas, stNormal);
+    DrawAll(interimBitmap.Canvas, blocks, labels, lines);
     interimBitmap.SaveToFile(FileToSaveAs);
   finally
     interimBitmap.Free;

@@ -11,7 +11,10 @@ uses
 }
 
 procedure DrawAll(canva: TCanvas; blocks: PBlock; labels: PText; lines: PLine);
+
 procedure DrawSelection(canva: TCanvas; bounds: TRect);
+procedure DrawLineHooks(canva: TCanvas; bounds: TRect; center: TPoint);
+
 procedure DrawTerminatorSymbol(canva: TCanvas; bounds: TRect);
 procedure DrawProcessSymbol(canva: TCanvas; bounds: TRect);
 procedure DrawDecisionSymbol(canva: TCanvas; bounds: TRect);
@@ -22,11 +25,9 @@ procedure DrawTeleportSymbol(canva: TCanvas; bounds: TRect);
 procedure DrawVertLine(canva: TCanvas; x: integer);
 
 procedure InitDrawingProperties();
-procedure UpdateCanvaAttributes(canva: TCanvas);
+procedure SetCanvaAttributes(canva: TCanvas; state: TState);
 
 implementation
-
-procedure SetSelectionCanvaAttributes(canva: TCanvas); forward;
 
 var
   mainPenColor: TColor;
@@ -41,6 +42,13 @@ var
   selectionBrushColor: TColor;
   selectionPenWidth: integer;
   selectionMargin: integer;
+
+  hookPenColor: TColor;
+  hookPenStyle: TPenStyle;
+  hookBrushStyle: TBrushStyle;
+  hookBrushColor: TColor;
+  hookPenWidth: integer;
+  hookSize: integer;
 
 procedure DrawAll(canva: TCanvas; blocks: PBlock; labels: PText; lines: PLine);
 begin
@@ -64,8 +72,10 @@ begin
         DrawTeleportSymbol(canva, blocks.info.bounds);
     end;
 
-    if blocks.isSelected = true then
+    if blocks.state = stSelected then
       DrawSelection(canva, blocks.info.bounds);
+    if blocks.state = stLines then
+      DrawLineHooks(canva, blocks.info.bounds, blocks.info.center);
   end;
 
 end;
@@ -75,10 +85,11 @@ begin
 
   with canva do
   begin
-    Polygon([Point(bounds.Left + (bounds.Right - bounds.Left) div 8, bounds.Top),
-      Point(bounds.Right + (bounds.Right - bounds.Left) div 8, bounds.Top),
-      Point(bounds.Right - (bounds.Right - bounds.Left) div 8, bounds.Bottom),
-      Point(bounds.Left - (bounds.Right - bounds.Left) div 8, bounds.Bottom)]);
+    Polygon([Point(bounds.Left + (bounds.Right - bounds.Left) div 8,
+      bounds.Top), Point(bounds.Right + (bounds.Right - bounds.Left) div 8,
+      bounds.Top), Point(bounds.Right - (bounds.Right - bounds.Left) div 8,
+      bounds.Bottom), Point(bounds.Left - (bounds.Right - bounds.Left) div 8,
+      bounds.Bottom)]);
   end;
 
 end;
@@ -92,6 +103,27 @@ begin
       Point((bounds.Left + bounds.Right) div 2, bounds.Bottom),
       Point(bounds.Left, (bounds.Bottom + bounds.Top) div 2)]);
   end;
+end;
+
+procedure DrawLineHooks(canva: TCanvas; bounds: TRect; center: TPoint);
+begin
+
+  SetCanvaAttributes(canva, stLines);
+
+  with canva do
+  begin
+    Rectangle(bounds.Left - hookSize, center.Y - hookSize,
+      bounds.Left + hookSize, center.Y + hookSize);
+    Rectangle(center.x - hookSize, bounds.Top - hookSize, center.x + hookSize,
+      bounds.Top + hookSize);
+    Rectangle(bounds.Right - hookSize, center.Y - hookSize,
+      bounds.Right + hookSize, center.Y + hookSize);
+    Rectangle(center.x - hookSize, bounds.Bottom - hookSize,
+      center.x + hookSize, bounds.Bottom + hookSize);
+  end;
+
+  SetCanvaAttributes(canva, stNormal); // restore default drawing settings
+
 end;
 
 procedure DrawVertLine(canva: TCanvas; x: integer);
@@ -140,12 +172,12 @@ end;
 procedure DrawSelection(canva: TCanvas; bounds: TRect);
 begin
 
-  SetSelectionCanvaAttributes(canva);
+  SetCanvaAttributes(canva, stSelected);
 
   canva.Rectangle(bounds.Left - selectionMargin, bounds.Top - selectionMargin,
     bounds.Right + selectionMargin, bounds.Bottom + selectionMargin);
 
-  UpdateCanvaAttributes(canva);
+  SetCanvaAttributes(canva, stNormal);
 
 end;
 
@@ -158,7 +190,6 @@ end;
 
 procedure InitDrawingProperties();
 begin
-
   mainPenWidth := 3;
   mainPenColor := clBlack;
   mainPenStyle := psSolid;
@@ -172,28 +203,42 @@ begin
   selectionBrushColor := clNone;
   selectionMargin := 15;
 
+  hookPenColor := clBlue;
+  hookPenStyle := psSolid;
+  hookBrushStyle := bsSolid;
+  hookBrushColor := clBlue;
+  hookPenWidth := 1;
+  hookSize := 3;
 end;
 
-procedure UpdateCanvaAttributes(canva: TCanvas);
+procedure SetCanvaAttributes(canva: TCanvas; state: TState);
 begin
-
-  canva.Pen.Width := mainPenWidth;
-  canva.Pen.Color := mainPenColor;
-  canva.Pen.Style := mainPenStyle;
-  canva.Brush.Color := mainBrushColor;
-  canva.Brush.Style := mainBrushStyle;
-
-end;
-
-procedure SetSelectionCanvaAttributes(canva: TCanvas);
-begin
-
-  canva.Pen.Width := selectionPenWidth;
-  canva.Pen.Color := selectionPenColor;
-  canva.Pen.Style := selectionPenStyle;
-  canva.Brush.Color := selectionBrushColor;
-  canva.Brush.Style := selectionBrushStyle;
-
+  case state of
+    stNormal:
+      begin
+        canva.Pen.Width := mainPenWidth;
+        canva.Pen.Color := mainPenColor;
+        canva.Pen.Style := mainPenStyle;
+        canva.Brush.Color := mainBrushColor;
+        canva.Brush.Style := mainBrushStyle;
+      end;
+    stSelected:
+      begin
+        canva.Pen.Width := selectionPenWidth;
+        canva.Pen.Color := selectionPenColor;
+        canva.Pen.Style := selectionPenStyle;
+        canva.Brush.Color := selectionBrushColor;
+        canva.Brush.Style := selectionBrushStyle;
+      end;
+    stLines:
+      begin
+        canva.Pen.Width := hookPenWidth;
+        canva.Pen.Color := hookPenColor;
+        canva.Pen.Style := hookPenStyle;
+        canva.Brush.Color := hookBrushColor;
+        canva.Brush.Style := hookBrushStyle;
+      end;
+  end;
 end;
 
 end.
