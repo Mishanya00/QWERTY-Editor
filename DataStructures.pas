@@ -8,8 +8,8 @@ uses
 type
 
   TState = (stNormal, stSelected, stLines);
-  TLineType = (Straight, Arrow, DualArrow);
-  TBlockType = (Terminator, Process, Decision, Data, Predefined, Teleport);
+  TLineType = (ltStraight, ltArrow, ltDualArrow);
+  TBlockType = (Terminator, Process, Decision, Data, Predefined, Teleport, CycleUp, CycleDown);
 
   PBlock = ^TBlock;
   PText = ^TText;
@@ -47,24 +47,30 @@ type
   TLineInfo = record
     id: integer;
     lineType: TLineType;
-    width: integer;
-    x1, y1: integer;
-    x2, y2: integer;
+    startID: integer; // ID of connected to this line symbol
+    finishID: integer; // ID of connected to the end of this line symbol
+    start: TPoint; // In case there is no startID
+    finish: TPoint; // In case there is no finishID
 
   end;
 
   TLine = record
+    state: TState;
     info: TLineInfo;
     next: PLine;
   end;
 
 procedure AddBlock(blocks: PBlock; blockToAdd: TBlockInfo);
+procedure AddLine(lines: PLine; lineToAdd: TLineInfo);
 
-function GetIdByCoord(blocks: PBlock; lines: PLine; labels: PText;
-  point: TPoint): integer;
+function GetIdByCoord(point: TPoint; blocks: PBlock; labels: PText;
+  lines: PLine): integer;
 function GetNearestSymbolCoord(segment: integer; blocks: PBlock): TPoint;
+function isPointInLine(point: TPoint; line: TLineInfo): boolean;
 
 function RemoveBlock(blocks: PBlock; idToRemove: integer): boolean;
+function RemoveLine(lines: PLine; idToRemove: integer): boolean;
+
 procedure RemoveSelectedSymbols(canva: TCanvas; blocks: PBlock; labels: PText;
   lines: PLine);
 
@@ -75,12 +81,14 @@ procedure OffsetSelectedSymbols(canva: TCanvas; blocks: PBlock; labels: PText;
 
 procedure StartupInit(var blocks: PBlock; var lines: PLine; var labels: PText);
 procedure UnselectSymbols(blocks: PBlock; labels: PText; lines: PLine);
-procedure SetSymbolsState(state: TState; blocks: PBlock; labels: PText; lines: PLine);
+procedure SetSymbolsState(state: TState; blocks: PBlock; labels: PText;
+  lines: PLine);
 
 implementation
 
 var
   CurrentID: integer;
+  lineArea: integer = 5;
 
 procedure AddBlock(blocks: PBlock; blockToAdd: TBlockInfo);
 begin
@@ -97,8 +105,23 @@ begin
   blocks.next.next := nil;
 end;
 
-function GetIdByCoord(blocks: PBlock; lines: PLine; labels: PText;
-  point: TPoint): integer;
+procedure AddLine(lines: PLine; lineToAdd: TLineInfo);
+begin
+  inc(CurrentID);
+
+  while lines.next <> nil do
+    lines := lines.next;
+
+  New(lines.next);
+
+  lines.state := stNormal;
+  lines.next.info := lineToAdd;
+  lines.next.info.id := CurrentID;
+  lines.next.next := nil;
+end;
+
+function GetIdByCoord(point: TPoint; blocks: PBlock; labels: PText;
+  lines: PLine): integer;
 begin
 
   Result := -1;
@@ -109,7 +132,7 @@ begin
     if PtInRect(blocks.info.bounds, point) then
     begin
       Result := blocks.info.id;
-      break;
+      exit;
     end;
   end;
 
@@ -121,6 +144,12 @@ begin
   while lines.next <> nil do
   begin
     lines := lines.next;
+    if isPointInLine(point, lines.info) then
+    begin
+      Result := lines.info.id;
+      exit;
+    end;
+
   end;
 
 end;
@@ -184,6 +213,33 @@ begin
 
 end;
 
+function isPointInLine(point: TPoint; line: TLineInfo): boolean;
+begin
+
+  if (line.start.x = line.finish.x) or (line.start.y = line.finish.y) then
+  begin
+    if (point.x >= line.start.x - lineArea) and
+      (point.x <= line.finish.x + lineArea) and
+      (point.y >= line.start.y - lineArea) and
+      (point.y <= line.finish.y + lineArea) then
+      Result := true;
+
+  end {
+    else if (line.finish.y - line.start.y > 0) then
+    begin
+    LineTo(line.start.x, line.start.y + lineMargin);
+    LineTo(line.finish.x, line.start.y + lineMargin);
+    LineTo(line.finish.x, line.finish.y);
+    end
+    else if (line.finish.y - line.start.y < 0) then
+    begin
+    LineTo(line.start.x, line.start.y - lineMargin);
+    LineTo(line.finish.x, line.start.y - lineMargin);
+    LineTo(line.finish.x, line.finish.y);
+    end; }
+
+end;
+
 procedure OffsetSelectedSymbols(canva: TCanvas; blocks: PBlock; labels: PText;
   lines: PLine; offsetX, offsetY: integer);
 begin
@@ -198,6 +254,8 @@ begin
       inc(blocks.info.bounds.right, offsetX);
       inc(blocks.info.bounds.top, offsetY);
       inc(blocks.info.bounds.bottom, offsetY);
+      inc(blocks.info.center.x, offsetX);
+      inc(blocks.info.center.y, offsetY);
     end;
   end;
 
@@ -244,6 +302,38 @@ begin
     // In case of last element deletion
     if blocks.next <> nil then
       blocks := blocks.next;
+
+  end;
+
+end;
+
+function RemoveLine(lines: PLine; idToRemove: integer): boolean;
+
+var
+  temp: PLine;
+
+begin
+
+  Result := false;
+
+  while ((lines.next <> nil) and not(Result)) do
+  begin
+
+    if lines.next.info.id = idToRemove then
+    begin
+
+      temp := lines.next;
+      lines.next := lines.next.next;
+      Result := true;
+
+      temp.next := nil;
+      Dispose(temp);
+
+    end;
+
+    // In case of last element deletion
+    if lines.next <> nil then
+      lines := lines.next;
 
   end;
 
@@ -325,7 +415,8 @@ begin
   }
 end;
 
-procedure SetSymbolsState(state: TState; blocks: PBlock; labels: PText; lines: PLine);
+procedure SetSymbolsState(state: TState; blocks: PBlock; labels: PText;
+  lines: PLine);
 begin
 
   while blocks.next <> nil do
@@ -349,7 +440,6 @@ begin
   }
 
 end;
-
 
 procedure StartupInit(var blocks: PBlock; var lines: PLine; var labels: PText);
 begin
@@ -381,14 +471,11 @@ begin
     labels.state := stNormal;
   end;
 
-  {
-    while lines.next <> nil do
-    begin
-    lines := labels.next;
-    lines.isSelected := false;
-    end;
-  }
-
+  while lines.next <> nil do
+  begin
+    lines := lines.next;
+    lines.state := stNormal;
+  end;
 end;
 
 end.

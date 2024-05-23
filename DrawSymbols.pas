@@ -15,6 +15,8 @@ procedure DrawAll(canva: TCanvas; blocks: PBlock; labels: PText; lines: PLine);
 procedure DrawSelection(canva: TCanvas; bounds: TRect);
 procedure DrawLineHooks(canva: TCanvas; bounds: TRect; center: TPoint);
 
+procedure DrawCycleUp(canva: TCanvas; bounds: TRect);
+procedure DrawCycleDown(canva: TCanvas; bounds: TRect);
 procedure DrawTerminatorSymbol(canva: TCanvas; bounds: TRect);
 procedure DrawProcessSymbol(canva: TCanvas; bounds: TRect);
 procedure DrawDecisionSymbol(canva: TCanvas; bounds: TRect);
@@ -23,6 +25,8 @@ procedure DrawPredefinedSymbol(canva: TCanvas; bounds: TRect);
 procedure DrawTeleportSymbol(canva: TCanvas; bounds: TRect);
 
 procedure DrawVertLine(canva: TCanvas; x: integer);
+procedure DrawLine(canva: TCanvas; line: TLineInfo);
+procedure DrawBorders(canva: TCanvas; width, height: integer);
 
 procedure InitDrawingProperties();
 procedure SetCanvaAttributes(canva: TCanvas; state: TState);
@@ -50,6 +54,8 @@ var
   hookPenWidth: integer;
   hookSize: integer;
 
+  lineMargin: integer;
+
 procedure DrawAll(canva: TCanvas; blocks: PBlock; labels: PText; lines: PLine);
 begin
 
@@ -70,12 +76,75 @@ begin
         DrawPredefinedSymbol(canva, blocks.info.bounds);
       Teleport:
         DrawTeleportSymbol(canva, blocks.info.bounds);
+      CycleUp:
+        DrawCycleUp(canva, blocks.info.bounds);
+      CycleDown:
+        DrawCycleDown(canva, blocks.info.bounds);
     end;
 
     if blocks.state = stSelected then
       DrawSelection(canva, blocks.info.bounds);
     if blocks.state = stLines then
       DrawLineHooks(canva, blocks.info.bounds, blocks.info.center);
+  end;
+
+  while labels.next <> nil do
+  begin
+    labels := labels.next;
+  end;
+
+  while lines.next <> nil do
+  begin
+    lines := lines.next;
+
+    if lines.state = stSelected then
+    begin
+      canva.Pen.Color := selectionPenColor;
+      DrawLine(canva, lines.info);
+      canva.Pen.Color := mainPenColor;
+    end
+    else
+      DrawLine(canva, lines.info);
+  end;
+
+end;
+
+procedure DrawBorders(canva: TCanvas; width, height: integer);
+begin
+  with canva do
+  begin
+    MoveTo(0, 0);
+    LineTo(width, 0);
+    LineTo(width, height);
+    LineTo(0, height);
+    LineTo(0, 0);
+  end;
+end;
+
+procedure DrawCycleDown(canva: TCanvas; bounds: TRect);
+begin
+
+  with canva do
+  begin
+    // 10 это скос
+    Polygon([Point(bounds.Left, bounds.Top + 10), Point(bounds.Left + 10,
+      bounds.Top), Point(bounds.Right - 10, bounds.Top), Point(bounds.Right,
+      bounds.Top + 10), Point(bounds.Right, bounds.Bottom), Point(bounds.Left,
+      bounds.Bottom), Point(bounds.Left, bounds.Top + 10)]);
+  end;
+
+end;
+
+procedure DrawCycleUp(canva: TCanvas; bounds: TRect);
+begin
+
+  with canva do
+  begin
+    // 10 это скос
+    Polygon([Point(bounds.Left, bounds.Top + 10), Point(bounds.Left + 10,
+      bounds.Top), Point(bounds.Right - 10, bounds.Top), Point(bounds.Right,
+      bounds.Top + 10), Point(bounds.Right, bounds.Bottom), Point(bounds.Left,
+      bounds.Bottom), Point(bounds.Left, bounds.Top + 10)]);
   end;
 
 end;
@@ -102,6 +171,33 @@ begin
       Point(bounds.Right, (bounds.Bottom + bounds.Top) div 2),
       Point((bounds.Left + bounds.Right) div 2, bounds.Bottom),
       Point(bounds.Left, (bounds.Bottom + bounds.Top) div 2)]);
+  end;
+end;
+
+procedure DrawLine(canva: TCanvas; line: TLineInfo);
+begin
+  with canva do
+  begin
+
+    MoveTo(line.start.x, line.start.Y);
+
+    if (line.start.x = line.finish.x) or (line.start.Y = line.finish.Y) then
+    begin
+      LineTo(line.finish.x, line.finish.Y);
+    end
+    else if (line.finish.Y - line.start.Y > 0) then
+    begin
+      LineTo(line.start.x, line.start.Y + lineMargin);
+      LineTo(line.finish.x, line.start.Y + lineMargin);
+      LineTo(line.finish.x, line.finish.Y);
+    end
+    else if (line.finish.Y - line.start.Y < 0) then
+    begin
+      LineTo(line.start.x, line.start.Y - lineMargin);
+      LineTo(line.finish.x, line.start.Y - lineMargin);
+      LineTo(line.finish.x, line.finish.Y);
+    end;
+
   end;
 end;
 
@@ -190,6 +286,9 @@ end;
 
 procedure InitDrawingProperties();
 begin
+
+  lineMargin := 20;
+
   mainPenWidth := 3;
   mainPenColor := clBlack;
   mainPenStyle := psSolid;
@@ -216,7 +315,7 @@ begin
   case state of
     stNormal:
       begin
-        canva.Pen.Width := mainPenWidth;
+        canva.Pen.width := mainPenWidth;
         canva.Pen.Color := mainPenColor;
         canva.Pen.Style := mainPenStyle;
         canva.Brush.Color := mainBrushColor;
@@ -224,7 +323,7 @@ begin
       end;
     stSelected:
       begin
-        canva.Pen.Width := selectionPenWidth;
+        canva.Pen.width := selectionPenWidth;
         canva.Pen.Color := selectionPenColor;
         canva.Pen.Style := selectionPenStyle;
         canva.Brush.Color := selectionBrushColor;
@@ -232,7 +331,7 @@ begin
       end;
     stLines:
       begin
-        canva.Pen.Width := hookPenWidth;
+        canva.Pen.width := hookPenWidth;
         canva.Pen.Color := hookPenColor;
         canva.Pen.Style := hookPenStyle;
         canva.Brush.Color := hookBrushColor;

@@ -42,7 +42,7 @@ type
     ToolButton5: TToolButton;
     panelSymbols: TPanel;
     actPaste: TAction;
-    StatusBar1: TStatusBar;
+    sbSupport: TStatusBar;
     N9: TMenuItem;
     N10: TMenuItem;
     odMain: TOpenDialog;
@@ -79,6 +79,10 @@ type
     N12: TMenuItem;
     N13: TMenuItem;
     N14: TMenuItem;
+    pnlCycleUp: TPanel;
+    imgCycleUp: TImage;
+    pnlCycleDown: TPanel;
+    imgCycleDown: TImage;
     procedure pbWorkingAreaMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
     procedure FormCreate(Sender: TObject);
@@ -100,6 +104,7 @@ type
       MousePos: TPoint; var Handled: Boolean);
     procedure sbMainMouseWheelUp(Sender: TObject; Shift: TShiftState;
       MousePos: TPoint; var Handled: Boolean);
+    procedure pbWorkingAreaClick(Sender: TObject);
 
   private
     currentMode: TState;
@@ -122,7 +127,7 @@ type
 
     startLiningPoint: TPoint;
 
-    fLining: Boolean;     // Process of creating lines in lines mode
+    fLining: Boolean; // Process of creating lines in lines mode
     fDragging: Boolean;
     fSelecting: Boolean; // Process of selecting items inside the area
     fCentered: Boolean; // To prevent from centering after centering
@@ -209,10 +214,13 @@ begin
         begin
           currentMode := stLines;
           SetSymbolsState(stLines, blocks, labels, lines);
+          sbSupport.Panels[1].Text := 'Текущий режим: Линии';
           pbWorkingArea.Invalidate;
         end;
       TEXT_MODE_TAG:
-        ShowMessage('Text mode');
+        begin
+          sbSupport.Panels[1].Text := 'Текущий режим: Текст';
+        end;
     end;
 
   end;
@@ -228,8 +236,9 @@ begin
 
   selectedSymbolsCount := 0;
 
-  pbWorkingArea.Width := 3000;
-  pbWorkingArea.Height := 3000;
+  // pbWorkingArea.Left := (sbMain.Left + sbMain.Width) div 5;
+  pbWorkingArea.Width := 500;
+  pbWorkingArea.Height := 800;
 
   defaultWidth := 50;
   defaultHeight := 25;
@@ -237,6 +246,8 @@ begin
 
   InitDrawingProperties();
   SetCanvaAttributes(pbWorkingArea.Canvas, stNormal);
+
+  sbSupport.Panels[1].Text := 'Текущий режим: Основной';
 
   // Assignment of actions' tags
   actCreate.Tag := 1;
@@ -257,6 +268,8 @@ begin
   imgData.Tag := 4;
   imgPredefined.Tag := 5;
   imgTeleport.Tag := 6;
+  imgCycleUp.Tag := 7;
+  imgCycleDown.Tag := 8;
 end;
 
 procedure TfrmMain.FormKeyDown(Sender: TObject; var Key: Word;
@@ -285,6 +298,31 @@ begin
     Accept := false;
 end;
 
+procedure TfrmMain.pbWorkingAreaClick(Sender: TObject);
+begin
+  case currentMode of
+    stLines:
+      begin
+        if fLining = True then
+        begin
+          fLining := false;
+          tempLine.finish := (Sender as TControl)
+            .ScreenToClient(Mouse.CursorPos);
+          AddLine(lines, tempLine);
+          pbWorkingArea.Invalidate;
+        end
+        else
+        begin
+          fLining := True;
+          tempLine.start := (Sender as TControl)
+            .ScreenToClient(Mouse.CursorPos);
+          tempLine.finish := tempLine.start; // Начало и конец линии совпадают
+        end;
+      end;
+  end;
+
+end;
+
 procedure TfrmMain.pbWorkingAreaDragDrop(Sender, Source: TObject;
   X, Y: Integer);
 
@@ -293,12 +331,6 @@ var
   tempBlock: TBlockInfo;
 
 begin
-  {
-    point := (Sender as TControl).ScreenToClient(Mouse.CursorPos);
-    tempBlock.bounds := Rect(point.X - defaultWidth, point.Y - defaultHeight,
-    point.X + defaultWidth, point.Y + defaultHeight);
-    tempBlock.center := point;
-  }
 
   tempBlock.bounds := Rect(X - defaultWidth, Y - defaultHeight,
     X + defaultWidth, Y + defaultHeight);
@@ -340,6 +372,16 @@ begin
         tempBlock.blockType := Teleport;
         AddBlock(blocks, tempBlock);
       end;
+    7:
+      begin
+        tempBlock.blockType := CycleUp;
+        AddBlock(blocks, tempBlock);
+      end;
+    8:
+      begin
+        tempBlock.blockType := CycleDown;
+        AddBlock(blocks, tempBlock);
+      end;
   end;
 
   pbWorkingArea.Invalidate;
@@ -366,15 +408,10 @@ begin
         case Button of
           mbLeft:
             begin
-              id := GetIdByCoord(blocks, lines, labels, point(X, Y));
+              id := GetIdByCoord(point(X, Y), blocks, labels, lines);
               if id <> -1 then
               begin
                 fDragging := True;
-
-                { Second Variant to get mouse coordinates:
-                  startDraggingPoint := (Sender as TControl)
-                  .ScreenToClient(Mouse.CursorPos);
-                }
 
                 startDraggingPoint.X := X;
                 startDraggingPoint.Y := Y;
@@ -389,25 +426,31 @@ begin
                 Inc(selectedSymbolsCount);
               end
               else
+              begin
                 SetSymbolsState(stNormal, blocks, labels, lines);
+                fSelecting := True;
+              end;
             end;
         end;
 
       end;
-
-    stLines:
-    begin
+    {
+      stLines:
+      begin
 
       case Button of
-        mbLeft:
-        begin
-          fLining := true;
-          startLiningPoint.X := X;
-          startLiningPoint.Y := Y;
-        end;
+      mbLeft:
+      begin
+      fLining := True;
+      startLiningPoint.X := X;
+      startLiningPoint.Y := Y;
+      tempLine.start.X := X;
+      tempLine.start.Y := Y;
+      end;
       end;
 
-    end;
+      end;
+    }
   end;
 
   pbWorkingArea.Invalidate; // To redraw the whole PaintBox
@@ -420,6 +463,9 @@ var
   centered: TPoint;
 
 begin
+
+  sbSupport.Panels[0].Text := 'X: ' + IntToStr(X) + '  Y: ' + IntToStr(Y);
+
   if fDragging = True then
   begin
     {
@@ -469,25 +515,39 @@ begin
       pbWorkingArea.Invalidate;
       end;
     }
+
+    if (X + defaultWidth >= pbWorkingArea.Width) then
+      pbWorkingArea.Width := X + defaultWidth + 100;
+    if (Y + defaultHeight >= pbWorkingArea.Height) then
+      pbWorkingArea.Height := Y + defaultHeight + 100;
+
     if (abs(X - startDraggingPoint.X) >= draggingStep) or
       (abs(Y - startDraggingPoint.Y) >= draggingStep) then
     begin
       OffsetSelectedSymbols(pbWorkingArea.Canvas, blocks, labels, lines,
         X - startDraggingPoint.X, Y - startDraggingPoint.Y);
-
-      {
-        startDraggingPoint := (Sender as TControl)
-        .ScreenToClient(Mouse.CursorPos);
-      }
       startDraggingPoint.X := X;
       startDraggingPoint.Y := Y;
       pbWorkingArea.Invalidate;
     end;
   end;
 
-  if fLining = true then
+  if fLining = True then
   begin
+    if (abs(X - startLiningPoint.X) >= draggingStep) or
+      (abs(Y - startLiningPoint.Y) >= draggingStep) then
+    begin
+      pbWorkingArea.Canvas.Pen.Mode := pmNotXor;
+      DrawLine(pbWorkingArea.Canvas, tempLine);
 
+      startLiningPoint.X := X;
+      startLiningPoint.Y := Y;
+      tempLine.finish.X := X;
+      tempLine.finish.Y := Y;
+
+      pbWorkingArea.Canvas.Pen.Mode := pmCopy;
+      DrawLine(pbWorkingArea.Canvas, tempLine);
+    end;
   end;
 end;
 
@@ -495,13 +555,15 @@ procedure TfrmMain.pbWorkingAreaMouseUp(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 begin
   fDragging := false;
-  fLining := false;
+  // fLining := false;
   fSelecting := false;
 end;
 
 procedure TfrmMain.pbWorkingAreaPaint(Sender: TObject);
 begin
   DrawAll(pbWorkingArea.Canvas, blocks, labels, lines);
+  DrawBorders(pbWorkingArea.Canvas, pbWorkingArea.Width - 1,
+    pbWorkingArea.Height - 1);
 end;
 
 procedure TfrmMain.sbMainMouseWheelDown(Sender: TObject; Shift: TShiftState;

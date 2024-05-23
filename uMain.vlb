@@ -55,9 +55,6 @@ Coordinates=536,331,40,36
 [ToolButton2]
 Coordinates=10,282,84,36
 
-[StatusBar1]
-Coordinates=142,146,78,58
-
 [panelSymbols]
 Coordinates=118,78,95,58
 
@@ -121,4 +118,7 @@ Coordinates=77,146,55,58
 
 [imgTeleport]
 Coordinates=413,10,57,58
+
+[sbSupport]
+Coordinates=142,146,78,58
 

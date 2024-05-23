@@ -6,6 +6,8 @@ uses Vcl.ExtCtrls, Vcl.Graphics, DrawSymbols, DataStructures;
 
 procedure SaveBitMapAsPng(const FileToSaveAs: string; pbToExport: TPaintBox;
   blocks: PBlock; labels: PText; lines: PLine);
+procedure SaveFileAsRog(const FileToSaveAs: string;
+  blocks: PBlock; labels: PText; lines: PLine);
 
 implementation
 
@@ -25,6 +27,12 @@ begin
   finally
     interimBitmap.Free;
   end;
+
+end;
+
+procedure SaveFileAsRog(const FileToSaveAs: string;
+  blocks: PBlock; labels: PText; lines: PLine);
+begin
 
 end;
 

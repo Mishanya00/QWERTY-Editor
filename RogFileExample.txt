@@ -1,0 +1,27 @@
+{
+	'BLOCKS'
+	{
+		{
+		id: 123
+		bounds: (0, 0, 100, 100)
+		center: (50, 50)
+		}
+		{
+		id: 88
+		bounds: (100, 100, 200, 200)
+		center: (150, 150)
+		}
+	}
+	'LABELS'
+	{
+		{
+		id: 111
+		text: 'Hello, guys'
+		LeftCorner: (0, 0)
+		}
+	}
+	'LINES'
+	{
+	}
+}
+	
