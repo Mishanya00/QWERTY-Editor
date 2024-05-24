@@ -117,13 +117,13 @@ type
     defaultWidth: Integer;
     defaultHeight: Integer;
 
-    // workingAreaWidth: Integer = 3000;
-    // workingAreaHeight: Integer = 3000;
-
     tempLine: TLineInfo;
+    tempLineId: Integer;
+    tempLineAddr: PLine;
 
     startDraggingPoint: TPoint;
     draggingStep: Integer;
+    liningStep: integer;
 
     startLiningPoint: TPoint;
 
@@ -208,6 +208,7 @@ begin
         begin
           currentMode := stNormal;
           SetSymbolsState(stNormal, blocks, labels, lines);
+          sbSupport.Panels[1].Text := 'Текущий режим: Основной';
           pbWorkingArea.Invalidate;
         end;
       LINES_MODE_TAG:
@@ -230,24 +231,22 @@ end;
 procedure TfrmMain.FormCreate(Sender: TObject);
 begin
 
-  StartupInit(blocks, lines, labels);
+  InitDataStructures(blocks, lines, labels);
+  InitDrawingProperties();
 
-  fCentered := false;
-
-  selectedSymbolsCount := 0;
-
-  // pbWorkingArea.Left := (sbMain.Left + sbMain.Width) div 5;
   pbWorkingArea.Width := 500;
   pbWorkingArea.Height := 800;
 
+  SetCanvaAttributes(pbWorkingArea.Canvas, stNormal);
+  sbSupport.Panels[1].Text := 'Текущий режим: Основной';
+
+  // fCentered := false;
+
+  selectedSymbolsCount := 0;
   defaultWidth := 50;
   defaultHeight := 25;
   draggingStep := 30;
-
-  InitDrawingProperties();
-  SetCanvaAttributes(pbWorkingArea.Canvas, stNormal);
-
-  sbSupport.Panels[1].Text := 'Текущий режим: Основной';
+  liningStep := 20;
 
   // Assignment of actions' tags
   actCreate.Tag := 1;
@@ -434,23 +433,24 @@ begin
         end;
 
       end;
-    {
-      stLines:
+
+    stLines:
       begin
 
-      case Button of
-      mbLeft:
-      begin
-      fLining := True;
-      startLiningPoint.X := X;
-      startLiningPoint.Y := Y;
-      tempLine.start.X := X;
-      tempLine.start.Y := Y;
-      end;
-      end;
+        case Button of
+          mbLeft:
+            begin
+              fLining := True;
+              tempLineId := -1;
+              // It means that this line hasnt been added to lines list
+              startLiningPoint.X := X;
+              startLiningPoint.Y := Y;
+              tempLine.start.X := X;
+              tempLine.start.Y := Y;
+            end;
+        end;
 
       end;
-    }
   end;
 
   pbWorkingArea.Invalidate; // To redraw the whole PaintBox
@@ -468,53 +468,6 @@ begin
 
   if fDragging = True then
   begin
-    {
-      // Place to implement centering
-      if (abs(X - startDraggingPoint.X) >= draggingStep) or
-      (abs(Y - startDraggingPoint.Y) >= draggingStep) then
-      begin
-
-      if (selectedSymbolsCount > 1) or (fCentered = True) then
-      begin
-      fCentered := false;
-
-      OffsetSelectedSymbols(pbWorkingArea.Canvas, blocks, labels, lines,
-      X - startDraggingPoint.X, Y - startDraggingPoint.Y);
-      startDraggingPoint.X := X;
-      startDraggingPoint.Y := Y;
-      end
-      else
-      begin
-      centered := GetNearestSymbolCoord(draggingStep div 2, blocks);
-      if centered.X = 9999999 then
-      begin
-      centered.X := X - startDraggingPoint.X;
-      startDraggingPoint.X := X;
-      end
-      else
-      begin
-      fCentered := True;
-      // centered.X := centered.X +
-      startDraggingPoint.X := X + centered.X;
-      end;
-      if centered.Y = 9999999 then
-      begin
-      centered.Y := Y - startDraggingPoint.Y;
-      startDraggingPoint.Y := Y;
-      end
-      else
-      begin
-      fCentered := True;
-      startDraggingPoint.Y := Y + centered.Y;
-      end;
-
-      OffsetSelectedSymbols(pbWorkingArea.Canvas, blocks, labels, lines,
-      centered.X, centered.Y);
-      end;
-
-      pbWorkingArea.Invalidate;
-      end;
-    }
 
     if (X + defaultWidth >= pbWorkingArea.Width) then
       pbWorkingArea.Width := X + defaultWidth + 100;
@@ -534,28 +487,45 @@ begin
 
   if fLining = True then
   begin
-    if (abs(X - startLiningPoint.X) >= draggingStep) or
-      (abs(Y - startLiningPoint.Y) >= draggingStep) then
+    if (abs(X - startLiningPoint.X) >= liningStep) or
+      (abs(Y - startLiningPoint.Y) >= liningStep) then
     begin
-      pbWorkingArea.Canvas.Pen.Mode := pmNotXor;
-      DrawLine(pbWorkingArea.Canvas, tempLine);
+      {
+      if (abs(X - startLiningPoint.X) >= draggingStep) then
+        tempLine.finish.X := X
+      else
+        tempLine.finish.X := startLiningPoint.X;
+      if (abs(Y - startLiningPoint.Y) >= draggingStep) then
+        tempLine.finish.Y := Y
+      else
+        tempLine.finish.Y := startLiningPoint.Y;
+      }
 
-      startLiningPoint.X := X;
-      startLiningPoint.Y := Y;
       tempLine.finish.X := X;
       tempLine.finish.Y := Y;
 
-      pbWorkingArea.Canvas.Pen.Mode := pmCopy;
-      DrawLine(pbWorkingArea.Canvas, tempLine);
+      if tempLineId = -1 then
+      begin
+        tempLineId := AddLine(lines, tempLine);
+        tempLineAddr := GetLineById(tempLineId, lines);
+      end
+      else
+        SetLineCoord(tempLineAddr, tempLine.start, tempLine.finish);
+
+      startLiningPoint.X := X;
+      startLiningPoint.Y := Y;
+
+      pbWorkingArea.Invalidate;
     end;
   end;
+
 end;
 
 procedure TfrmMain.pbWorkingAreaMouseUp(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 begin
   fDragging := false;
-  // fLining := false;
+  fLining := false;
   fSelecting := false;
 end;
 

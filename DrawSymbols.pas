@@ -5,11 +5,6 @@ interface
 uses
   System.Types, Vcl.Graphics, DataStructures;
 
-{
-  procedure SetCanvaAttributes(canva: TCanvas; penWidthArg: integer;
-  penColorArg, brushColorArg: TColor; brushStyleArg: TBrushStyle);
-}
-
 procedure DrawAll(canva: TCanvas; blocks: PBlock; labels: PText; lines: PLine);
 
 procedure DrawSelection(canva: TCanvas; bounds: TRect);
@@ -24,8 +19,7 @@ procedure DrawDataSymbol(canva: TCanvas; bounds: TRect);
 procedure DrawPredefinedSymbol(canva: TCanvas; bounds: TRect);
 procedure DrawTeleportSymbol(canva: TCanvas; bounds: TRect);
 
-procedure DrawVertLine(canva: TCanvas; x: integer);
-procedure DrawLine(canva: TCanvas; line: TLineInfo);
+procedure DrawLine(canva: TCanvas; line: PLine);
 procedure DrawBorders(canva: TCanvas; width, height: integer);
 
 procedure InitDrawingProperties();
@@ -100,11 +94,11 @@ begin
     if lines.state = stSelected then
     begin
       canva.Pen.Color := selectionPenColor;
-      DrawLine(canva, lines.info);
+      DrawLine(canva, lines);
       canva.Pen.Color := mainPenColor;
     end
     else
-      DrawLine(canva, lines.info);
+      DrawLine(canva, lines);
   end;
 
 end;
@@ -174,28 +168,16 @@ begin
   end;
 end;
 
-procedure DrawLine(canva: TCanvas; line: TLineInfo);
+procedure DrawLine(canva: TCanvas; line: PLine);
 begin
   with canva do
   begin
 
-    MoveTo(line.start.x, line.start.Y);
+    MoveTo(line.vertexes[0].x, line.vertexes[0].y);
 
-    if (line.start.x = line.finish.x) or (line.start.Y = line.finish.Y) then
+    for var i := 1 to Length(line.vertexes)-1 do
     begin
-      LineTo(line.finish.x, line.finish.Y);
-    end
-    else if (line.finish.Y - line.start.Y > 0) then
-    begin
-      LineTo(line.start.x, line.start.Y + lineMargin);
-      LineTo(line.finish.x, line.start.Y + lineMargin);
-      LineTo(line.finish.x, line.finish.Y);
-    end
-    else if (line.finish.Y - line.start.Y < 0) then
-    begin
-      LineTo(line.start.x, line.start.Y - lineMargin);
-      LineTo(line.finish.x, line.start.Y - lineMargin);
-      LineTo(line.finish.x, line.finish.Y);
+      LineTo(line.vertexes[i].X, line.vertexes[i].Y);
     end;
 
   end;
@@ -220,15 +202,6 @@ begin
 
   SetCanvaAttributes(canva, stNormal); // restore default drawing settings
 
-end;
-
-procedure DrawVertLine(canva: TCanvas; x: integer);
-begin
-  with canva do
-  begin
-    MoveTo(x, 0);
-    LineTo(x, ClipRect.Bottom);
-  end;
 end;
 
 procedure DrawProcessSymbol(canva: TCanvas; bounds: TRect);

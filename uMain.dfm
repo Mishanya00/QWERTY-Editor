@@ -173,7 +173,7 @@ object frmMain: TfrmMain
     ParentBackground = False
     TabOrder = 1
     OnDragOver = panelSymbolsDragOver
-    ExplicitLeft = 32
+    ExplicitHeight = 488
     object pnlDecision: TPanel
       Left = 150
       Top = 6
@@ -1370,7 +1370,6 @@ object frmMain: TfrmMain
       ParentFont = False
       ParentShowHint = False
       ShowHint = False
-      OnClick = pbWorkingAreaClick
       OnDragDrop = pbWorkingAreaDragDrop
       OnDragOver = pbWorkingAreaDragOver
       OnMouseDown = pbWorkingAreaMouseDown
