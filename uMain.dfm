@@ -156,6 +156,14 @@ object frmMain: TfrmMain
       ParentShowHint = False
       ShowHint = True
     end
+    object ToolButton14: TToolButton
+      Left = 368
+      Top = 0
+      Width = 8
+      Caption = 'ToolButton14'
+      ImageIndex = 11
+      Style = tbsSeparator
+    end
   end
   object panelSymbols: TPanel
     Left = 0
@@ -916,7 +924,7 @@ object frmMain: TfrmMain
         Stretch = True
         OnMouseDown = imgTerminatorMouseDown
         ExplicitLeft = 8
-        ExplicitTop = 6
+        ExplicitTop = 7
       end
     end
     object pnlProcess: TPanel
@@ -1355,10 +1363,10 @@ object frmMain: TfrmMain
     ExplicitWidth = 824
     ExplicitHeight = 488
     object pbWorkingArea: TPaintBox
-      Left = 4
+      Left = 3
       Top = 3
-      Width = 501
-      Height = 406
+      Width = 509
+      Height = 358
       ParentCustomHint = False
       Color = clWhite
       Font.Charset = DEFAULT_CHARSET
@@ -1370,6 +1378,7 @@ object frmMain: TfrmMain
       ParentFont = False
       ParentShowHint = False
       ShowHint = False
+      OnClick = pbWorkingAreaClick
       OnDragDrop = pbWorkingAreaDragDrop
       OnDragOver = pbWorkingAreaDragOver
       OnMouseDown = pbWorkingAreaMouseDown
@@ -1377,9 +1386,31 @@ object frmMain: TfrmMain
       OnMouseUp = pbWorkingAreaMouseUp
       OnPaint = pbWorkingAreaPaint
     end
+    object reMainInput: TRichEdit
+      Left = 576
+      Top = 3
+      Width = 217
+      Height = 64
+      BorderWidth = 1
+      Ctl3D = True
+      Enabled = False
+      Font.Charset = RUSSIAN_CHARSET
+      Font.Color = clWindowText
+      Font.Height = -18
+      Font.Name = 'Segoe UI'
+      Font.Style = []
+      ParentCtl3D = False
+      ParentFont = False
+      TabOrder = 0
+      Visible = False
+      OnChange = reMainInputChange
+      OnExit = reMainInputExit
+      OnKeyDown = reMainInputKeyDown
+    end
   end
   object alMain: TActionList
-    Left = 592
+    Left = 840
+    Top = 408
     object actCreate: TAction
       Category = 'Files'
       Caption = #1057#1086#1079#1076#1072#1090#1100
@@ -1442,9 +1473,6 @@ object frmMain: TfrmMain
       ShortCut = 16470
       OnExecute = actionsExecuter
     end
-    object actDragSymbol: TAction
-      Caption = #1055#1077#1088#1077#1090#1103#1085#1091#1090#1100
-    end
     object actLinesMode: TAction
       Category = 'Modes'
       Caption = #1056#1077#1078#1080#1084' '#1083#1080#1085#1080#1081
@@ -1467,9 +1495,21 @@ object frmMain: TfrmMain
       ImageIndex = 10
       OnExecute = actionsExecuter
     end
+    object actSelectAll: TAction
+      Category = 'Edit'
+      Caption = 'Select All'
+      ShortCut = 16449
+      OnExecute = actionsExecuter
+    end
+    object actChooseFont: TAction
+      Category = 'Settings'
+      Caption = #1042#1099#1073#1088#1072#1090#1100' '#1096#1088#1080#1092#1090
+      OnExecute = actionsExecuter
+    end
   end
   object ilMain: TImageList
-    Left = 648
+    Left = 904
+    Top = 408
     Bitmap = {
       494C01010B001800040010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000400000003000000001002000000000000030
@@ -1876,7 +1916,8 @@ object frmMain: TfrmMain
   end
   object MainMenu1: TMainMenu
     Images = ilMain
-    Left = 712
+    Left = 960
+    Top = 408
     object N1: TMenuItem
       Caption = #1060#1072#1081#1083
       object N3: TMenuItem
@@ -1909,6 +1950,9 @@ object frmMain: TfrmMain
       object N10: TMenuItem
         Action = actPaste
       end
+      object SelectAll1: TMenuItem
+        Action = actSelectAll
+      end
     end
     object N11: TMenuItem
       Caption = #1056#1077#1078#1080#1084#1099
@@ -1923,17 +1967,37 @@ object frmMain: TfrmMain
         Action = actTextMode
       end
     end
+    object N15: TMenuItem
+      Caption = #1053#1072#1089#1090#1088#1086#1081#1082#1080
+      object N16: TMenuItem
+        Action = actChooseFont
+      end
+    end
   end
   object odMain: TOpenDialog
     DefaultExt = '.dpr'
     Filter = 'Pascal Files|*pas;*dpr;|Flowchart Files|*rog'
-    Left = 768
+    Left = 840
+    Top = 456
   end
   object ilFlowchartSymbols: TImageList
-    Left = 880
+    Left = 904
+    Top = 456
   end
   object sdMain: TSaveDialog
     Filter = 'Flowchart File|*.rog|Flowchart Image|*.png'
-    Left = 816
+    Left = 960
+    Top = 456
+  end
+  object fdTextMode: TFontDialog
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -15
+    Font.Name = 'Segoe UI'
+    Font.Style = []
+    MinFontSize = 5
+    MaxFontSize = 25
+    Left = 960
+    Top = 360
   end
 end

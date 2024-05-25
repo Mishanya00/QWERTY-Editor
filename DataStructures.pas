@@ -7,14 +7,30 @@ uses
 
 type
 
-  TState = (stNormal, stSelected, stLines);
+  TState = (stNormal, stSelected, stLines, stText);
   TLineType = (ltStraight, ltArrow, ltDualArrow);
   TBlockType = (Terminator, Process, Decision, Data, Predefined, Teleport,
     CycleUp, CycleDown);
 
+  TFixedString = string[100];
+
   PBlock = ^TBlock;
   PText = ^TText;
   PLine = ^TLine;
+
+  TTextInfo = record
+    id: integer;
+    fontName: string[20];
+    fontSize: integer;
+    bounds: TRect;
+    text: TFixedString;
+  end;
+
+  TText = record
+    state: TState;
+    info: TTextInfo;
+    next: PText;
+  end;
 
   TBlockInfo = record
     id: integer;
@@ -22,10 +38,10 @@ type
     ULineID: integer; // upper
     RLineID: integer; // right
     BLineID: integer; // bottom
-    TextID: integer;
     blockType: TBlockType;
     bounds: TRect;
     center: TPoint;
+    TextInfo: TTextInfo;
   end;
 
   TBlock = record
@@ -35,24 +51,7 @@ type
     pULine: PLine;
     pRLine: PLine;
     pBLine: PLine;
-    PText: PText;
     next: PBlock;
-  end;
-
-  TTextInfo = record
-    id: integer;
-    size: integer;
-    font: TFont;
-    x: integer;
-    y: integer;
-    angle: integer;
-
-  end;
-
-  TText = record
-    state: TState;
-    info: TTextInfo;
-    next: PText;
   end;
 
   TLineInfo = record
@@ -69,13 +68,19 @@ type
     next: PLine;
   end;
 
-procedure AddBlock(blocks: PBlock; blockToAdd: TBlockInfo);
+function AddBlock(blocks: PBlock; blockToAdd: TBlockInfo): integer;
 function AddLine(lines: PLine; lineToAdd: TLineInfo): integer;
+function AddLabel(labels: PText; labelToAdd: TTextInfo): integer;
 procedure ConstructLine(lines: PLine);
 
+function GetBlockIdByCoord(point: TPoint; blocks: PBlock): integer;
+function GetLabelIDByCoord(point: TPoint; labels: PText): integer;
 function GetIdByCoord(point: TPoint; blocks: PBlock; labels: PText;
   lines: PLine): integer;
 function GetLineById(id: integer; lines: PLine): PLine;
+function GetBlockById(id: integer; blocks: PBlock): PBlock;
+function GetLabelById(id: integer; labels: PText): PText;
+
 function GetNearestSymbolCoord(segment: integer; blocks: PBlock): TPoint;
 function isPointInLine(point: TPoint; line: PLine): boolean;
 
@@ -90,6 +95,8 @@ procedure UnselectSymbols(blocks: PBlock; labels: PText; lines: PLine);
 procedure SetSymbolsState(state: TState; blocks: PBlock; labels: PText;
   lines: PLine);
 procedure SetLineCoord(line: PLine; start, finish: TPoint);
+procedure SetBlockTextInfo(id: integer; TextInfo: TTextInfo; blocks: PBlock);
+procedure SetLabelInfo(id: integer; TextInfo: TTextInfo; labels: PText);
 
 procedure OffsetSelectedSymbols(canva: TCanvas; blocks: PBlock; labels: PText;
   lines: PLine; offsetX, offsetY: integer);
@@ -107,8 +114,10 @@ var
   lineArea: integer = 10;
   lineMargin: integer = 20;
 
-procedure AddBlock(blocks: PBlock; blockToAdd: TBlockInfo);
+function AddBlock(blocks: PBlock; blockToAdd: TBlockInfo): integer;
 begin
+  Result := -1;
+
   inc(CurrentID);
 
   while blocks.next <> nil do
@@ -124,12 +133,35 @@ begin
   blocks.pULine := nil;
   blocks.pRLine := nil;
   blocks.pBLine := nil;
-  blocks.PText := nil;
   blocks.next.next := nil;
+
+  Result := CurrentID;
+end;
+
+function AddLabel(labels: PText; labelToAdd: TTextInfo): integer;
+begin
+  Result := -1;
+
+  inc(CurrentID);
+
+  while labels.next <> nil do
+    labels := labels.next;
+
+  New(labels.next);
+  labels := labels.next;
+
+  labels.state := stNormal;
+  labels.info := labelToAdd;
+  labels.info.id := CurrentID;
+  labels.next := nil;
+
+  Result := CurrentID;
 end;
 
 function AddLine(lines: PLine; lineToAdd: TLineInfo): integer;
 begin
+  Result := -1;
+
   inc(CurrentID);
 
   while lines.next <> nil do
@@ -141,11 +173,11 @@ begin
   lines.state := stNormal;
   lines.info := lineToAdd;
   lines.info.id := CurrentID;
-  Result := CurrentID;
+  lines.next := nil;
 
   ConstructLine(lines);
 
-  lines.next := nil;
+  Result := CurrentID;
 end;
 
 procedure ConstructLine(lines: PLine);
@@ -187,6 +219,36 @@ begin
   end;
 end;
 
+function GetBlockIdByCoord(point: TPoint; blocks: PBlock): integer;
+begin
+  Result := -1;
+
+  while blocks.next <> nil do
+  begin
+    blocks := blocks.next;
+    if PtInRect(blocks.info.bounds, point) then
+    begin
+      Result := blocks.info.id;
+      exit;
+    end;
+  end;
+end;
+
+function GetBlockById(id: integer; blocks: PBlock): PBlock;
+begin
+  Result := nil;
+
+  while blocks.next <> nil do
+  begin
+    blocks := blocks.next;
+    if blocks.info.id = id then
+    begin
+      Result := blocks;
+      exit;
+    end;
+  end;
+end;
+
 function GetIdByCoord(point: TPoint; blocks: PBlock; labels: PText;
   lines: PLine): integer;
 begin
@@ -206,6 +268,11 @@ begin
   while labels.next <> nil do
   begin
     labels := labels.next;
+    if PtInRect(labels.info.bounds, point) then
+    begin
+      Result := labels.info.id;
+      exit;
+    end;
   end;
 
   while lines.next <> nil do
@@ -219,6 +286,34 @@ begin
 
   end;
 
+end;
+
+function GetLabelIDByCoord(point: TPoint; labels: PText): integer;
+begin
+  Result := -1;
+
+  while labels.next <> nil do
+  begin
+    labels := labels.next;
+    if PtInRect(labels.info.bounds, point) then
+    begin
+      Result := labels.info.id;
+      exit;
+    end;
+  end;
+end;
+
+function GetLabelById(id: integer; labels: PText): PText;
+begin
+  while labels.next <> nil do
+  begin
+    labels := labels.next;
+    if labels.info.id = id then
+    begin
+      Result := labels;
+      exit;
+    end;
+  end;
 end;
 
 function GetLineById(id: integer; lines: PLine): PLine;
@@ -353,25 +448,30 @@ begin
       inc(blocks.info.bounds.right, offsetX);
       inc(blocks.info.bounds.top, offsetY);
       inc(blocks.info.bounds.bottom, offsetY);
+
       inc(blocks.info.center.x, offsetX);
       inc(blocks.info.center.y, offsetY);
+
+      inc(blocks.info.TextInfo.bounds.left, offsetX);
+      inc(blocks.info.TextInfo.bounds.right, offsetX);
+      inc(blocks.info.TextInfo.bounds.top, offsetY);
+      inc(blocks.info.TextInfo.bounds.bottom, offsetY);
     end;
   end;
 
-  {
-    while (labels.next <> nil) do
-    begin
+  while (labels.next <> nil) do
+  begin
     labels := labels.next;
 
-    if labels.isSelected = true then
+    if labels.state = stSelected then
     begin
-    Inc(labels.info.bounds.Left, offsetX);
-    Inc(labels.info.bounds.Right, offsetX);
-    Inc(labels.info.bounds.Top, offsetY);
-    Inc(labels.info.bounds.Bottom, offsetY);
+      inc(labels.info.bounds.left, offsetX);
+      inc(labels.info.bounds.right, offsetX);
+      inc(labels.info.bounds.top, offsetY);
+      inc(labels.info.bounds.bottom, offsetY);
     end;
-    end;
-  }
+  end;
+
   while (lines.next <> nil) do
   begin
     lines := lines.next;
@@ -506,6 +606,34 @@ begin
 
 end;
 
+procedure SetBlockTextInfo(id: integer; TextInfo: TTextInfo; blocks: PBlock);
+begin
+  while blocks.next <> nil do
+  begin
+    blocks := blocks.next;
+
+    if blocks.info.id = id then
+    begin
+      blocks.info.TextInfo := TextInfo;
+      exit;
+    end;
+  end;
+end;
+
+procedure SetLabelInfo(id: integer; TextInfo: TTextInfo; labels: PText);
+begin
+  while labels.next <> nil do
+  begin
+    labels := labels.next;
+
+    if labels.info.id = id then
+    begin
+      labels.info := TextInfo;
+      exit;
+    end;
+  end;
+end;
+
 procedure SelectSymbol(blocks: PBlock; lines: PLine; labels: PText;
   id: integer);
 begin
@@ -561,7 +689,7 @@ begin
   while lines.next <> nil do
   begin
     lines := lines.next;
-    lines.state := stNormal;
+    lines.state := state;
   end;
 
 end;

@@ -3,7 +3,7 @@
 interface
 
 uses
-  System.Types, Vcl.Graphics, DataStructures;
+  System.Types, Vcl.Graphics, DataStructures, windows;
 
 procedure DrawAll(canva: TCanvas; blocks: PBlock; labels: PText; lines: PLine);
 
@@ -18,7 +18,7 @@ procedure DrawDecisionSymbol(canva: TCanvas; bounds: TRect);
 procedure DrawDataSymbol(canva: TCanvas; bounds: TRect);
 procedure DrawPredefinedSymbol(canva: TCanvas; bounds: TRect);
 procedure DrawTeleportSymbol(canva: TCanvas; bounds: TRect);
-
+procedure DrawLabel(canva: TCanvas; labelToDraw: TTextInfo);
 procedure DrawLine(canva: TCanvas; line: PLine);
 procedure DrawBorders(canva: TCanvas; width, height: integer);
 
@@ -51,7 +51,26 @@ var
   lineMargin: integer;
 
 procedure DrawAll(canva: TCanvas; blocks: PBlock; labels: PText; lines: PLine);
+var
+  prevBrushStyle: TBrushStyle;
+  prevFont: TFont;
 begin
+
+  prevFont := canva.Font;
+
+  while lines.next <> nil do
+  begin
+    lines := lines.next;
+
+    if lines.state = stSelected then
+    begin
+      canva.Pen.Color := selectionPenColor;
+      DrawLine(canva, lines);
+      canva.Pen.Color := mainPenColor;
+    end
+    else
+      DrawLine(canva, lines);
+  end;
 
   while blocks.next <> nil do
   begin
@@ -76,6 +95,10 @@ begin
         DrawCycleDown(canva, blocks.info.bounds);
     end;
 
+    prevBrushStyle := canva.Brush.Style;
+    DrawLabel(canva, blocks.info.TextInfo);
+    canva.Brush.Style := prevBrushStyle;
+
     if blocks.state = stSelected then
       DrawSelection(canva, blocks.info.bounds);
     if blocks.state = stLines then
@@ -85,22 +108,14 @@ begin
   while labels.next <> nil do
   begin
     labels := labels.next;
+    DrawLabel(canva, labels.info);
+
+    if labels.state = stSelected then
+      DrawSelection(canva, labels.info.bounds);
   end;
 
-  while lines.next <> nil do
-  begin
-    lines := lines.next;
-
-    if lines.state = stSelected then
-    begin
-      canva.Pen.Color := selectionPenColor;
-      DrawLine(canva, lines);
-      canva.Pen.Color := mainPenColor;
-    end
-    else
-      DrawLine(canva, lines);
-  end;
-
+  canva.Brush.Style := prevBrushStyle;
+  canva.Font := prevFont;
 end;
 
 procedure DrawBorders(canva: TCanvas; width, height: integer);
@@ -168,6 +183,16 @@ begin
   end;
 end;
 
+procedure DrawLabel(canva: TCanvas; labelToDraw: TTextInfo);
+begin
+  canva.Font.Name := labelToDraw.FontName;
+  canva.Font.Size := labelToDraw.fontSize;
+  canva.Brush.Style := bsClear;
+
+  DrawText(canva.Handle, labelToDraw.text, Length(labelToDraw.text),
+    labelToDraw.bounds, DT_CENTER);
+end;
+
 procedure DrawLine(canva: TCanvas; line: PLine);
 begin
   with canva do
@@ -175,9 +200,9 @@ begin
 
     MoveTo(line.vertexes[0].x, line.vertexes[0].y);
 
-    for var i := 1 to Length(line.vertexes)-1 do
+    for var i := 1 to Length(line.vertexes) - 1 do
     begin
-      LineTo(line.vertexes[i].X, line.vertexes[i].Y);
+      LineTo(line.vertexes[i].x, line.vertexes[i].y);
     end;
 
   end;
@@ -190,12 +215,12 @@ begin
 
   with canva do
   begin
-    Rectangle(bounds.Left - hookSize, center.Y - hookSize,
-      bounds.Left + hookSize, center.Y + hookSize);
+    Rectangle(bounds.Left - hookSize, center.y - hookSize,
+      bounds.Left + hookSize, center.y + hookSize);
     Rectangle(center.x - hookSize, bounds.Top - hookSize, center.x + hookSize,
       bounds.Top + hookSize);
-    Rectangle(bounds.Right - hookSize, center.Y - hookSize,
-      bounds.Right + hookSize, center.Y + hookSize);
+    Rectangle(bounds.Right - hookSize, center.y - hookSize,
+      bounds.Right + hookSize, center.y + hookSize);
     Rectangle(center.x - hookSize, bounds.Bottom - hookSize,
       center.x + hookSize, bounds.Bottom + hookSize);
   end;

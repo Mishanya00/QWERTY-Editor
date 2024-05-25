@@ -46,7 +46,6 @@ type
     N9: TMenuItem;
     N10: TMenuItem;
     odMain: TOpenDialog;
-    actDragSymbol: TAction;
     pnlDecision: TPanel;
     imgDecision: TImage;
     pnlPredefined: TPanel;
@@ -83,6 +82,14 @@ type
     imgCycleUp: TImage;
     pnlCycleDown: TPanel;
     imgCycleDown: TImage;
+    actSelectAll: TAction;
+    SelectAll1: TMenuItem;
+    fdTextMode: TFontDialog;
+    N15: TMenuItem;
+    N16: TMenuItem;
+    actChooseFont: TAction;
+    ToolButton14: TToolButton;
+    reMainInput: TRichEdit;
     procedure pbWorkingAreaMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
     procedure FormCreate(Sender: TObject);
@@ -105,6 +112,10 @@ type
     procedure sbMainMouseWheelUp(Sender: TObject; Shift: TShiftState;
       MousePos: TPoint; var Handled: Boolean);
     procedure pbWorkingAreaClick(Sender: TObject);
+    procedure reMainInputChange(Sender: TObject);
+    procedure reMainInputKeyDown(Sender: TObject; var Key: Word;
+      Shift: TShiftState);
+    procedure reMainInputExit(Sender: TObject);
 
   private
     currentMode: TState;
@@ -117,13 +128,18 @@ type
     defaultWidth: Integer;
     defaultHeight: Integer;
 
+    tempLabel: PText;
+    tempBlock: PBlock;
     tempLine: TLineInfo;
     tempLineId: Integer;
     tempLineAddr: PLine;
 
     startDraggingPoint: TPoint;
+    startDraggingDrawingPoint: TPoint;
     draggingStep: Integer;
-    liningStep: integer;
+    draggingDrawingStep: Integer;
+    liningStep: Integer;
+    textInBlockMargin: Integer;
 
     startLiningPoint: TPoint;
 
@@ -131,6 +147,11 @@ type
     fDragging: Boolean;
     fSelecting: Boolean; // Process of selecting items inside the area
     fCentered: Boolean; // To prevent from centering after centering
+    fTexting: Boolean;
+
+    BlockTextingID: Integer;
+    LabelTextingID: Integer;
+    // ID of block being texting inside. Equals -1 if outside any block
 
     selectedSymbolsCount: Integer;
   public
@@ -156,6 +177,8 @@ const
   NORMAL_MODE_TAG = 9;
   LINES_MODE_TAG = 10;
   TEXT_MODE_TAG = 11;
+  SELECT_ALL_TAG = 12;
+  CHOOSE_FONT_TAG = 13;
 
 {$R *.dfm}
 
@@ -204,6 +227,12 @@ begin
         ShowMessage('COPY routine');
       PASTE_TAG:
         ShowMessage('PASTE routine');
+      SELECT_ALL_TAG:
+        begin
+          SetSymbolsState(stSelected, blocks, labels, lines);
+          pbWorkingArea.Invalidate;
+        end;
+
       NORMAL_MODE_TAG:
         begin
           currentMode := stNormal;
@@ -220,7 +249,16 @@ begin
         end;
       TEXT_MODE_TAG:
         begin
+          currentMode := stText;
+          SetSymbolsState(stNormal, blocks, labels, lines);
           sbSupport.Panels[1].Text := 'Текущий режим: Текст';
+          pbWorkingArea.Invalidate;
+        end;
+      CHOOSE_FONT_TAG:
+        begin
+          if not(fdTextMode.Execute()) then
+            Exit;
+          reMainInput.Font := fdTextMode.Font;
         end;
     end;
 
@@ -242,23 +280,42 @@ begin
 
   // fCentered := false;
 
+  tempBlock := nil;
+  tempLabel := nil;
+
   selectedSymbolsCount := 0;
   defaultWidth := 50;
   defaultHeight := 25;
-  draggingStep := 30;
+  draggingStep := 3;
+  draggingDrawingStep := 30;
   liningStep := 20;
+  textInBlockMargin := 5;
+
+  reMainInput.Font := fdTextMode.Font;
+  reMainInput.Width := 100;
+
+  fLining := false;
+  fDragging := false;
+  fSelecting := false;
+  fTexting := false;
+
+  BlockTextingID := -1;
+  LabelTextingID := -1;
 
   // Assignment of actions' tags
-  actCreate.Tag := 1;
-  actOpen.Tag := 2;
-  actSave.Tag := 3;
-  actSaveAs.Tag := 4;
-  actExport.Tag := 5;
-  actCut.Tag := 6;
-  actCopy.Tag := 7;
-  actPaste.Tag := 8;
-  actNormalMode.Tag := 9;
-  actLinesMode.Tag := 10;
+  actCreate.Tag := CREATE_TAG;
+  actOpen.Tag := OPEN_TAG;
+  actSave.Tag := SAVE_TAG;
+  actSaveAs.Tag := SAVE_AS_TAG;
+  actExport.Tag := EXPORT_TAG;
+  actCut.Tag := CUT_TAG;
+  actCopy.Tag := COPY_TAG;
+  actPaste.Tag := PASTE_TAG;
+  actNormalMode.Tag := NORMAL_MODE_TAG;
+  actLinesMode.Tag := LINES_MODE_TAG;
+  actTextMode.Tag := TEXT_MODE_TAG;
+  actSelectAll.Tag := SELECT_ALL_TAG;
+  actChooseFont.Tag := CHOOSE_FONT_TAG;
 
   // Assignment of image-symbols tags
   imgTerminator.Tag := 1;
@@ -298,25 +355,66 @@ begin
 end;
 
 procedure TfrmMain.pbWorkingAreaClick(Sender: TObject);
+var
+  point: TPoint;
+
 begin
   case currentMode of
-    stLines:
+    stText:
       begin
-        if fLining = True then
+        point := (Sender as TControl).ScreenToClient(Mouse.CursorPos);
+
+        BlockTextingID := GetBlockIdByCoord(point, blocks);
+        LabelTextingID := GetLabelIDByCoord(point, labels);
+
+        if BlockTextingID <> -1 then
         begin
-          fLining := false;
-          tempLine.finish := (Sender as TControl)
-            .ScreenToClient(Mouse.CursorPos);
-          AddLine(lines, tempLine);
-          pbWorkingArea.Invalidate;
+          tempBlock := GetBlockByID(BlockTextingID, blocks);
+          if tempBlock <> nil then
+          begin
+            reMainInput.Left := tempBlock.info.bounds.Left;
+            reMainInput.Top := tempBlock.info.bounds.Top;
+            reMainInput.Width := tempBlock.info.bounds.Right -
+              tempBlock.info.bounds.Left;
+            reMainInput.Height := tempBlock.info.bounds.Bottom -
+              tempBlock.info.bounds.Top;
+            reMainInput.Text := tempBlock.info.TextInfo.Text;
+          end
+          else // In case existed block surprizingly dissapears
+          begin
+            BlockTextingID := -1;
+            Exit;
+          end;
+        end
+        else if LabelTextingID <> -1 then
+        begin
+          tempLabel := GetLabelByID(BlockTextingID, labels);
+          if tempLabel <> nil then
+          begin
+            reMainInput.Left := tempLabel.info.bounds.Left;
+            reMainInput.Top := tempLabel.info.bounds.Top;
+            reMainInput.Width := tempLabel.info.bounds.Right -
+              tempLabel.info.bounds.Left;
+            reMainInput.Height := tempLabel.info.bounds.Bottom -
+              tempLabel.info.bounds.Top;
+            reMainInput.Text := tempLabel.info.Text;
+          end
+          else // In case existed block surprizingly dissapears
+          begin
+            LabelTextingID := -1;
+            Exit;
+          end;
         end
         else
         begin
-          fLining := True;
-          tempLine.start := (Sender as TControl)
-            .ScreenToClient(Mouse.CursorPos);
-          tempLine.finish := tempLine.start; // Начало и конец линии совпадают
+          reMainInput.Left := point.X;
+          reMainInput.Top := point.Y;
+          reMainInput.Height := 5 * fdTextMode.Font.Size;
         end;
+
+        reMainInput.Enabled := True;
+        reMainInput.Visible := True;
+        reMainInput.SetFocus;
       end;
   end;
 
@@ -335,6 +433,23 @@ begin
     X + defaultWidth, Y + defaultHeight);
   tempBlock.center.X := X;
   tempBlock.center.Y := Y;
+
+  tempBlock.LLineID := -1;
+  tempBlock.ULineID := -1;
+  tempBlock.RLineID := -1;
+  tempBlock.BLineID := -1;
+
+  tempBlock.TextInfo.bounds.Left := tempBlock.bounds.Left + textInBlockMargin;
+  tempBlock.TextInfo.bounds.Top := tempBlock.bounds.Top;
+  // + textInBlockMargin;
+  tempBlock.TextInfo.bounds.Right := tempBlock.bounds.Right - textInBlockMargin;
+  tempBlock.TextInfo.bounds.Bottom := tempBlock.bounds.Bottom;
+  // - textInBlockMargin;
+
+  tempBlock.TextInfo.fontName := fdTextMode.Font.Name;
+  tempBlock.TextInfo.fontSize := fdTextMode.Font.Size;
+  tempBlock.TextInfo.Text := 'Текст';
+
   SetSymbolsState(stNormal, blocks, labels, lines);
 
   // Numbers equal the value of the corresponding tag
@@ -389,6 +504,7 @@ end;
 procedure TfrmMain.pbWorkingAreaDragOver(Sender, Source: TObject; X, Y: Integer;
   State: TDragState; var Accept: Boolean);
 begin
+  // Without this empty function DragDrop does not work
   Exit;
 end;
 
@@ -414,6 +530,8 @@ begin
 
                 startDraggingPoint.X := X;
                 startDraggingPoint.Y := Y;
+                startDraggingDrawingPoint.X := X;
+                startDraggingDrawingPoint.Y := Y;
 
                 if not(ssShift in Shift) then
                 begin
@@ -451,6 +569,22 @@ begin
         end;
 
       end;
+
+    stText:
+      begin
+        case Button of
+          mbLeft:
+            begin
+              id := GetBlockIdByCoord(point(X, Y), blocks);
+              if id <> -1 then
+              begin
+
+                // smth is here
+
+              end;
+            end;
+        end;
+      end;
   end;
 
   pbWorkingArea.Invalidate; // To redraw the whole PaintBox
@@ -477,11 +611,25 @@ begin
     if (abs(X - startDraggingPoint.X) >= draggingStep) or
       (abs(Y - startDraggingPoint.Y) >= draggingStep) then
     begin
+
+      { // Increasing draggingStep during drag
+        if draggingStep <= 30 then
+        draggingStep := draggingStep + 3;
+      }
+
       OffsetSelectedSymbols(pbWorkingArea.Canvas, blocks, labels, lines,
         X - startDraggingPoint.X, Y - startDraggingPoint.Y);
+
       startDraggingPoint.X := X;
       startDraggingPoint.Y := Y;
-      pbWorkingArea.Invalidate;
+
+      if (abs(X - startDraggingDrawingPoint.X) >= draggingDrawingStep) or
+        (abs(Y - startDraggingDrawingPoint.Y) >= draggingDrawingStep) then
+      begin
+        startDraggingDrawingPoint.X := X;
+        startDraggingDrawingPoint.Y := Y;
+        pbWorkingArea.Invalidate;
+      end;
     end;
   end;
 
@@ -491,13 +639,13 @@ begin
       (abs(Y - startLiningPoint.Y) >= liningStep) then
     begin
       {
-      if (abs(X - startLiningPoint.X) >= draggingStep) then
+        if (abs(X - startLiningPoint.X) >= draggingStep) then
         tempLine.finish.X := X
-      else
+        else
         tempLine.finish.X := startLiningPoint.X;
-      if (abs(Y - startLiningPoint.Y) >= draggingStep) then
+        if (abs(Y - startLiningPoint.Y) >= draggingStep) then
         tempLine.finish.Y := Y
-      else
+        else
         tempLine.finish.Y := startLiningPoint.Y;
       }
 
@@ -519,12 +667,21 @@ begin
     end;
   end;
 
+  if fSelecting = True then
+  begin
+
+  end;
+
 end;
 
 procedure TfrmMain.pbWorkingAreaMouseUp(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 begin
-  fDragging := false;
+  if fDragging = True then
+  begin
+    fDragging := false;
+    pbWorkingArea.Invalidate;
+  end;
   fLining := false;
   fSelecting := false;
 end;
@@ -534,6 +691,58 @@ begin
   DrawAll(pbWorkingArea.Canvas, blocks, labels, lines);
   DrawBorders(pbWorkingArea.Canvas, pbWorkingArea.Width - 1,
     pbWorkingArea.Height - 1);
+end;
+
+procedure TfrmMain.reMainInputChange(Sender: TObject);
+begin
+  reMainInput.Height := reMainInput.lines.Count * 3 * fdTextMode.Font.Size;
+end;
+
+procedure TfrmMain.reMainInputExit(Sender: TObject);
+var
+  tempLabelInfo: TTextInfo;
+  line: string;
+begin
+  // Save of input data when user finishes writing text
+  if Length(reMainInput.Text) >= 99 then
+    ShowMessage('Длина текста не должна превышать 99 символов! У вас: ' +
+      IntToStr(Length(reMainInput.Text)))
+  else if Length(reMainInput.Text) <> 0 then
+  begin
+
+    tempLabelInfo.fontName := reMainInput.Font.Name;
+    tempLabelInfo.fontSize := reMainInput.Font.Size;
+
+    tempLabelInfo.bounds := reMainInput.BoundsRect;
+    tempLabelInfo.Text := '';
+
+    for line in reMainInput.lines do
+      tempLabelInfo.Text := tempLabelInfo.Text + line + #10;
+
+    if BlockTextingID <> -1 then
+      SetBlockTextInfo(BlockTextingID, tempLabelInfo, blocks)
+    else if LabelTextingID <> -1 then
+      SetLabelInfo(LabelTextingID, tempLabelInfo, labels)
+    else
+      AddLabel(labels, tempLabelInfo);
+
+    pbWorkingArea.Invalidate;
+  end;
+
+  BlockTextingID := -1;
+  reMainInput.Text := '';
+end;
+
+procedure TfrmMain.reMainInputKeyDown(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+  case Key of
+    VK_ESCAPE:
+      begin
+        reMainInput.Enabled := false;
+        reMainInput.Visible := false;
+      end;
+  end;
 end;
 
 procedure TfrmMain.sbMainMouseWheelDown(Sender: TObject; Shift: TShiftState;
