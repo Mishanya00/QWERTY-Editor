@@ -1,4 +1,84 @@
-﻿unit uMain;
+﻿{$A8,B-,C+,D+,E-,F-,G+,H+,I+,J-,K-,L+,M-,N-,O+,P+,Q-,R-,S-,T-,U-,V+,W-,X+,Y+,Z1}
+{$MINSTACKSIZE $00004000}
+{$MAXSTACKSIZE $00100000}
+{$IMAGEBASE $00400000}
+{$APPTYPE GUI}
+{$WARN SYMBOL_DEPRECATED ON}
+{$WARN SYMBOL_LIBRARY ON}
+{$WARN SYMBOL_PLATFORM ON}
+{$WARN SYMBOL_EXPERIMENTAL ON}
+{$WARN UNIT_LIBRARY ON}
+{$WARN UNIT_PLATFORM ON}
+{$WARN UNIT_DEPRECATED ON}
+{$WARN UNIT_EXPERIMENTAL ON}
+{$WARN HRESULT_COMPAT ON}
+{$WARN HIDING_MEMBER ON}
+{$WARN HIDDEN_VIRTUAL ON}
+{$WARN GARBAGE ON}
+{$WARN BOUNDS_ERROR ON}
+{$WARN ZERO_NIL_COMPAT ON}
+{$WARN STRING_CONST_TRUNCED ON}
+{$WARN FOR_LOOP_VAR_VARPAR ON}
+{$WARN TYPED_CONST_VARPAR ON}
+{$WARN ASG_TO_TYPED_CONST ON}
+{$WARN CASE_LABEL_RANGE ON}
+{$WARN FOR_VARIABLE ON}
+{$WARN CONSTRUCTING_ABSTRACT ON}
+{$WARN COMPARISON_FALSE ON}
+{$WARN COMPARISON_TRUE ON}
+{$WARN COMPARING_SIGNED_UNSIGNED ON}
+{$WARN COMBINING_SIGNED_UNSIGNED ON}
+{$WARN UNSUPPORTED_CONSTRUCT ON}
+{$WARN FILE_OPEN ON}
+{$WARN FILE_OPEN_UNITSRC ON}
+{$WARN BAD_GLOBAL_SYMBOL ON}
+{$WARN DUPLICATE_CTOR_DTOR ON}
+{$WARN INVALID_DIRECTIVE ON}
+{$WARN PACKAGE_NO_LINK ON}
+{$WARN PACKAGED_THREADVAR ON}
+{$WARN IMPLICIT_IMPORT ON}
+{$WARN HPPEMIT_IGNORED ON}
+{$WARN NO_RETVAL ON}
+{$WARN USE_BEFORE_DEF ON}
+{$WARN FOR_LOOP_VAR_UNDEF ON}
+{$WARN UNIT_NAME_MISMATCH ON}
+{$WARN NO_CFG_FILE_FOUND ON}
+{$WARN IMPLICIT_VARIANTS ON}
+{$WARN UNICODE_TO_LOCALE ON}
+{$WARN LOCALE_TO_UNICODE ON}
+{$WARN IMAGEBASE_MULTIPLE ON}
+{$WARN SUSPICIOUS_TYPECAST ON}
+{$WARN PRIVATE_PROPACCESSOR ON}
+{$WARN UNSAFE_TYPE OFF}
+{$WARN UNSAFE_CODE OFF}
+{$WARN UNSAFE_CAST OFF}
+{$WARN OPTION_TRUNCATED ON}
+{$WARN WIDECHAR_REDUCED ON}
+{$WARN DUPLICATES_IGNORED ON}
+{$WARN UNIT_INIT_SEQ ON}
+{$WARN LOCAL_PINVOKE ON}
+{$WARN MESSAGE_DIRECTIVE ON}
+{$WARN TYPEINFO_IMPLICITLY_ADDED ON}
+{$WARN RLINK_WARNING ON}
+{$WARN IMPLICIT_STRING_CAST ON}
+{$WARN IMPLICIT_STRING_CAST_LOSS ON}
+{$WARN EXPLICIT_STRING_CAST OFF}
+{$WARN EXPLICIT_STRING_CAST_LOSS OFF}
+{$WARN CVT_WCHAR_TO_ACHAR ON}
+{$WARN CVT_NARROWING_STRING_LOST ON}
+{$WARN CVT_ACHAR_TO_WCHAR ON}
+{$WARN CVT_WIDENING_STRING_LOST ON}
+{$WARN NON_PORTABLE_TYPECAST ON}
+{$WARN XML_WHITESPACE_NOT_ALLOWED ON}
+{$WARN XML_UNKNOWN_ENTITY ON}
+{$WARN XML_INVALID_NAME_START ON}
+{$WARN XML_INVALID_NAME ON}
+{$WARN XML_EXPECTED_CHARACTER ON}
+{$WARN XML_CREF_NO_RESOLVE ON}
+{$WARN XML_NO_PARM ON}
+{$WARN XML_NO_MATCHING_PARM ON}
+{$WARN IMMUTABLE_STRINGS OFF}
+unit uMain;
 
 interface
 
@@ -11,7 +91,7 @@ uses
 
   // custom imports
   DrawSymbols, DataStructures, SourceListing, FilesHandling, Vcl.Imaging.jpeg,
-  Vcl.Imaging.pngimage;
+  Vcl.Imaging.pngimage, Vcl.Printers;
 
 type
   TfrmMain = class(TForm)
@@ -91,6 +171,10 @@ type
     reMainInput: TRichEdit;
     pdMain: TPrintDialog;
     ilFlowchartSymbols: TImageList;
+    pnlStoredData: TPanel;
+    imgStoredData: TImage;
+    pnlStorageDevice: TPanel;
+    imgStorageDevice: TImage;
     procedure pbWorkingAreaMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
     procedure FormCreate(Sender: TObject);
@@ -149,7 +233,7 @@ type
     fDragging: Boolean;
     fSelecting: Boolean; // Process of selecting items inside the area
     fCentered: Boolean; // To prevent from centering after centering
-    fTexting: Boolean;
+    // fTexting: Boolean;
 
     BlockTextingID: Integer;
     LabelTextingID: Integer;
@@ -199,15 +283,29 @@ begin
 
       CREATE_TAG:
         ShowMessage('Create routine');
+
       OPEN_TAG:
         begin
           if not(odMain.Execute()) then
             Exit;
           FFileName := odMain.Files[0];
-          frmDelphiListing.Show();
-          frmDelphiListing.memoListing.lines.LoadFromFile(FFileName);
-          frmDelphiListing.Caption := 'Listing - ' + FFileName;
+          if SameText(ExtractFileExt(FFileName), '.png') then
+          begin
+            frmDelphiListing.Show();
+            frmDelphiListing.memoListing.lines.LoadFromFile(FFileName);
+            frmDelphiListing.Caption := 'Listing - ' + FFileName;
+          end
+          else if SameText(ExtractFileExt(FFileName), '.rog') then
+          begin
+            SetSymbolsState(stSelected, blocks, labels, lines);
+            RemoveSelectedSymbols(blocks, labels, lines);
+            ReadFileAsRog(FFileName, blocks, labels, lines);
+            pbWorkingArea.Invalidate;
+          end
+          else
+            ShowMessage('Открыт файл некорректного расширения!');
         end;
+
       SAVE_TAG:
         begin
           if FFileName = '' then
@@ -241,7 +339,29 @@ begin
       PRINT_TAG:
         begin
 
-          ShowMessage('Print action');
+          if not(pdMain.Execute()) then
+            Exit;
+
+          var
+            interimBitmap: TBitMap;
+
+          interimBitmap := TBitMap.Create;
+          try
+            interimBitmap.SetSize(pbWorkingArea.Width, pbWorkingArea.Height);
+            SetSymbolsState(stNormal, blocks, labels, lines);
+            SetCanvaAttributes(interimBitmap.Canvas, stNormal);
+            DrawAll(interimBitmap.Canvas, blocks, labels, lines);
+
+            Printer.BeginDoc;
+            try
+              Printer.Canvas.StretchDraw(Rect(0, 0, Printer.PageWidth,
+                Printer.PageHeight), interimBitmap);
+            finally
+              Printer.EndDoc;
+            end;
+          finally
+            interimBitmap.Free;
+          end;
 
         end;
 
@@ -253,8 +373,11 @@ begin
         ShowMessage('PASTE routine');
       SELECT_ALL_TAG:
         begin
-          SetSymbolsState(stSelected, blocks, labels, lines);
-          pbWorkingArea.Invalidate;
+          if currentMode = stNormal then
+          begin
+            SetSymbolsState(stSelected, blocks, labels, lines);
+            pbWorkingArea.Invalidate;
+          end;
         end;
 
       NORMAL_MODE_TAG:
@@ -296,8 +419,9 @@ begin
   InitDataStructures(blocks, lines, labels);
   InitDrawingProperties();
 
-  pbWorkingArea.Width := 500;
-  pbWorkingArea.Height := 800;
+  // A4 ?
+  pbWorkingArea.Width := 594;
+  pbWorkingArea.Height := 841;
 
   SetCanvaAttributes(pbWorkingArea.Canvas, stNormal);
   sbSupport.Panels[1].Text := 'Текущий режим: Основной';
@@ -309,11 +433,11 @@ begin
   FFileName := '';
 
   selectedSymbolsCount := 0;
-  defaultWidth := 50;
-  defaultHeight := 25;
+  defaultWidth := 60;
+  defaultHeight := 30;
   draggingStep := 3;
-  draggingDrawingStep := 20;
-  liningStep := 20;
+  draggingDrawingStep := 5;
+  liningStep := 5;
   textInBlockMargin := 5;
 
   reMainInput.Font := fdTextMode.Font;
@@ -322,7 +446,6 @@ begin
   fLining := false;
   fDragging := false;
   fSelecting := false;
-  fTexting := false;
 
   BlockTextingID := -1;
   LabelTextingID := -1;
@@ -351,6 +474,10 @@ begin
   imgTeleport.Tag := 6;
   imgCycleUp.Tag := 7;
   imgCycleDown.Tag := 8;
+  imgStoredData.Tag := 9;
+  imgStorageDevice.Tag := 10;
+
+  windowState := wsMaximized;
 end;
 
 procedure TfrmMain.FormKeyDown(Sender: TObject; var Key: Word;
@@ -358,7 +485,7 @@ procedure TfrmMain.FormKeyDown(Sender: TObject; var Key: Word;
 begin
   case Key of
     VK_DELETE:
-      RemoveSelectedSymbols(pbWorkingArea.Canvas, blocks, labels, lines);
+      RemoveSelectedSymbols(blocks, labels, lines);
   end;
 
   pbWorkingArea.Invalidate;
@@ -414,6 +541,8 @@ begin
                 tempBlock.info.bounds.Left;
               reMainInput.Height := tempBlock.info.bounds.Bottom -
                 tempBlock.info.bounds.Top;
+              reMainInput.Font.Size := tempBlock.info.TextInfo.fontSize;
+              reMainInput.Font.Name := tempBlock.info.TextInfo.fontName;
               reMainInput.Text := tempBlock.info.TextInfo.Text;
             end
             else // In case existed block surprizingly dissapears
@@ -433,6 +562,8 @@ begin
                 tempLabel.info.bounds.Left;
               reMainInput.Height := tempLabel.info.bounds.Bottom -
                 tempLabel.info.bounds.Top;
+              reMainInput.Font.Size := tempLabel.info.fontSize;
+              reMainInput.Font.Name := tempLabel.info.fontName;
               reMainInput.Text := tempLabel.info.Text;
             end
             else // In case existed block surprizingly dissapears
@@ -487,7 +618,7 @@ begin
 
   tempBlock.TextInfo.fontName := fdTextMode.Font.Name;
   tempBlock.TextInfo.fontSize := fdTextMode.Font.Size;
-  tempBlock.TextInfo.Text := 'Текст';
+  tempBlock.TextInfo.Text := #10'Рогачев';
 
   SetSymbolsState(stNormal, blocks, labels, lines);
 
@@ -495,44 +626,57 @@ begin
   case (Source as TImage).Tag of
     1:
       begin
-        tempBlock.blockType := Terminator;
+        tempBlock.blockType := btTerminator;
         AddBlock(blocks, tempBlock);
       end;
     2:
       begin
-        tempBlock.blockType := Process;
+        tempBlock.blockType := btProcess;
         AddBlock(blocks, tempBlock);
       end;
     3:
       begin
-        tempBlock.blockType := Decision;
+        tempBlock.blockType := btDecision;
         AddBlock(blocks, tempBlock);
       end;
     4:
       begin
-        tempBlock.blockType := Data;
+        tempBlock.blockType := btData;
         AddBlock(blocks, tempBlock);
       end;
     5:
       begin
-        tempBlock.blockType := Predefined;
+        tempBlock.blockType := btPredefined;
         AddBlock(blocks, tempBlock);
       end;
     6:
       begin
+        // Not-default size settings for circle
         tempBlock.bounds := Rect(X - defaultHeight, Y - defaultHeight,
           X + defaultHeight, Y + defaultHeight);
-        tempBlock.blockType := Teleport;
+        tempBlock.blockType := btTeleport;
         AddBlock(blocks, tempBlock);
       end;
     7:
       begin
-        tempBlock.blockType := CycleUp;
+        tempBlock.blockType := btCycleUp;
         AddBlock(blocks, tempBlock);
       end;
     8:
       begin
-        tempBlock.blockType := CycleDown;
+        tempBlock.blockType := btCycleDown;
+        AddBlock(blocks, tempBlock);
+      end;
+    9:
+      begin
+        tempBlock.blockType := btStoredData;
+        AddBlock(blocks, tempBlock);
+      end;
+    10:
+      begin
+        tempBlock.bounds := Rect(X - defaultHeight, Y - defaultHeight,
+          X + defaultHeight, Y + defaultHeight);
+        tempBlock.blockType := btStorageDevice;
         AddBlock(blocks, tempBlock);
       end;
   end;
@@ -656,8 +800,8 @@ begin
         draggingStep := draggingStep + 3;
       }
 
-      OffsetSelectedSymbols(pbWorkingArea.Canvas, blocks, labels, lines,
-        X - startDraggingPoint.X, Y - startDraggingPoint.Y);
+      OffsetSelectedSymbols(blocks, labels, lines, X - startDraggingPoint.X,
+        Y - startDraggingPoint.Y);
 
       startDraggingPoint.X := X;
       startDraggingPoint.Y := Y;
@@ -734,7 +878,8 @@ end;
 
 procedure TfrmMain.reMainInputChange(Sender: TObject);
 begin
-  reMainInput.Height := reMainInput.lines.Count * 3 * fdTextMode.Font.Size;
+  if (reMainInput.lines.Count > 0) then
+    reMainInput.Height := reMainInput.lines.Count * 3 * fdTextMode.Font.Size;
 end;
 
 procedure TfrmMain.reMainInputExit(Sender: TObject);

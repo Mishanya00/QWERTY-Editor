@@ -18,6 +18,8 @@ procedure DrawDecisionSymbol(canva: TCanvas; bounds: TRect);
 procedure DrawDataSymbol(canva: TCanvas; bounds: TRect);
 procedure DrawPredefinedSymbol(canva: TCanvas; bounds: TRect);
 procedure DrawTeleportSymbol(canva: TCanvas; bounds: TRect);
+procedure DrawStorageDeviceSymbol(canva: TCanvas; bounds: TRect);
+
 procedure DrawLabel(canva: TCanvas; labelToDraw: TTextInfo);
 procedure DrawLine(canva: TCanvas; line: PLine);
 procedure DrawBorders(canva: TCanvas; width, height: integer);
@@ -77,22 +79,24 @@ begin
     blocks := blocks.next;
 
     case blocks.info.blockType of
-      Terminator:
+      btTerminator:
         DrawTerminatorSymbol(canva, blocks.info.bounds);
-      Process:
+      btProcess:
         DrawProcessSymbol(canva, blocks.info.bounds);
-      Decision:
+      btDecision:
         DrawDecisionSymbol(canva, blocks.info.bounds);
-      Data:
+      btData:
         DrawDataSymbol(canva, blocks.info.bounds);
-      Predefined:
+      btPredefined:
         DrawPredefinedSymbol(canva, blocks.info.bounds);
-      Teleport:
+      btTeleport:
         DrawTeleportSymbol(canva, blocks.info.bounds);
-      CycleUp:
+      btCycleUp:
         DrawCycleUp(canva, blocks.info.bounds);
-      CycleDown:
+      btCycleDown:
         DrawCycleDown(canva, blocks.info.bounds);
+      btStorageDevice:
+        DrawStorageDeviceSymbol(canva, blocks.info.bounds);
     end;
 
     prevBrushStyle := canva.Brush.Style;
@@ -135,11 +139,11 @@ begin
 
   with canva do
   begin
-    // 10 это скос
-    Polygon([Point(bounds.Left, bounds.Top + 10), Point(bounds.Left + 10,
-      bounds.Top), Point(bounds.Right - 10, bounds.Top), Point(bounds.Right,
-      bounds.Top + 10), Point(bounds.Right, bounds.Bottom), Point(bounds.Left,
-      bounds.Bottom), Point(bounds.Left, bounds.Top + 10)]);
+    // 15 это скос
+    Polygon([Point(bounds.Left, bounds.Top), Point(bounds.Right, bounds.Top),
+      Point(bounds.Right, bounds.Bottom - 15), Point(bounds.Right - 15,
+      bounds.Bottom), Point(bounds.Left + 15, bounds.Bottom),
+      Point(bounds.Left, bounds.Bottom - 15), Point(bounds.Left, bounds.Top)]);
   end;
 
 end;
@@ -149,11 +153,11 @@ begin
 
   with canva do
   begin
-    // 10 это скос
-    Polygon([Point(bounds.Left, bounds.Top + 10), Point(bounds.Left + 10,
-      bounds.Top), Point(bounds.Right - 10, bounds.Top), Point(bounds.Right,
-      bounds.Top + 10), Point(bounds.Right, bounds.Bottom), Point(bounds.Left,
-      bounds.Bottom), Point(bounds.Left, bounds.Top + 10)]);
+    // 15 это скос
+    Polygon([Point(bounds.Left, bounds.Top + 15), Point(bounds.Left + 15,
+      bounds.Top), Point(bounds.Right - 15, bounds.Top), Point(bounds.Right,
+      bounds.Top + 15), Point(bounds.Right, bounds.Bottom), Point(bounds.Left,
+      bounds.Bottom), Point(bounds.Left, bounds.Top + 15)]);
   end;
 
 end;
@@ -273,6 +277,18 @@ begin
 
   SetCanvaAttributes(canva, stNormal);
 
+end;
+
+procedure DrawStorageDeviceSymbol(canva: TCanvas; bounds: TRect);
+begin
+  with canva do
+  begin
+    Rectangle(bounds);
+    MoveTo(bounds.Left+5, bounds.Top);
+    LineTo(bounds.Left+5, bounds.Bottom);
+    MoveTo(bounds.Left, bounds.Top+5);
+    LineTo(bounds.Right, bounds.Top+5);
+  end;
 end;
 
 procedure DrawTeleportSymbol(canva: TCanvas; bounds: TRect);

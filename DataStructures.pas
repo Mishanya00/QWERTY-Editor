@@ -9,10 +9,15 @@ type
 
   TState = (stNormal, stSelected, stLines, stText);
   TLineType = (ltStraight, ltArrow, ltDualArrow);
-  TBlockType = (Terminator, Process, Decision, Data, Predefined, Teleport,
-    CycleUp, CycleDown);
+  TBlockType = (btTerminator, btProcess, btDecision, btData, btPredefined, btTeleport,
+    btCycleUp, btCycleDown, btStoredData, btStorageDevice);
 
   TFixedString = string[100];
+
+  TSessionInfo = record
+    Width: integer;
+    Height: integer;
+  end;
 
   PBlock = ^TBlock;
   PText = ^TText;
@@ -85,8 +90,9 @@ function GetNearestSymbolCoord(segment: integer; blocks: PBlock): TPoint;
 function isPointInLine(point: TPoint; line: PLine): boolean;
 
 function RemoveBlock(blocks: PBlock; idToRemove: integer): boolean;
+function RemoveLabel(labels: PText; idToRemove: integer): boolean;
 function RemoveLine(lines: PLine; idToRemove: integer): boolean;
-procedure RemoveSelectedSymbols(canva: TCanvas; blocks: PBlock; labels: PText;
+procedure RemoveSelectedSymbols(blocks: PBlock; labels: PText;
   lines: PLine);
 
 procedure SelectSymbol(blocks: PBlock; lines: PLine; labels: PText;
@@ -98,7 +104,7 @@ procedure SetLineCoord(line: PLine; start, finish: TPoint);
 procedure SetBlockTextInfo(id: integer; TextInfo: TTextInfo; blocks: PBlock);
 procedure SetLabelInfo(id: integer; TextInfo: TTextInfo; labels: PText);
 
-procedure OffsetSelectedSymbols(canva: TCanvas; blocks: PBlock; labels: PText;
+procedure OffsetSelectedSymbols(blocks: PBlock; labels: PText;
   lines: PLine; offsetX, offsetY: integer);
 
 procedure InitDataStructures(var blocks: PBlock; var lines: PLine;
@@ -434,7 +440,7 @@ begin
   ConstructLine(line);
 end;
 
-procedure OffsetSelectedSymbols(canva: TCanvas; blocks: PBlock; labels: PText;
+procedure OffsetSelectedSymbols(blocks: PBlock; labels: PText;
   lines: PLine; offsetX, offsetY: integer);
 begin
 
@@ -497,7 +503,7 @@ begin
 
   Result := false;
 
-  while ((blocks^.next <> nil) and not(Result)) do
+  while ((blocks.next <> nil) and not(Result)) do
   begin
 
     if blocks.next.info.id = idToRemove then
@@ -515,6 +521,38 @@ begin
     // In case of last element deletion
     if blocks.next <> nil then
       blocks := blocks.next;
+
+  end;
+
+end;
+
+function RemoveLabel(labels: PText; idToRemove: integer): boolean;
+
+var
+  temp: PText;
+
+begin
+
+  Result := false;
+
+  while ((labels.next <> nil) and not(Result)) do
+  begin
+
+    if labels.next.info.id = idToRemove then
+    begin
+
+      temp := labels.next;
+      labels.next := labels.next.next;
+      Result := true;
+
+      temp.next := nil;
+      Dispose(temp);
+
+    end;
+
+    // In case of last element deletion
+    if labels.next <> nil then
+      labels := labels.next;
 
   end;
 
@@ -552,7 +590,7 @@ begin
 
 end;
 
-procedure RemoveSelectedSymbols(canva: TCanvas; blocks: PBlock; labels: PText;
+procedure RemoveSelectedSymbols(blocks: PBlock; labels: PText;
   lines: PLine);
 
 var
