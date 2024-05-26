@@ -21,7 +21,7 @@ type
     actSave: TAction;
     actCreate: TAction;
     actSaveAs: TAction;
-    actExport: TAction;
+    actPrint: TAction;
     actCut: TAction;
     tbMain: TToolBar;
     MainMenu1: TMainMenu;
@@ -56,7 +56,6 @@ type
     imgData: TImage;
     sbMain: TScrollBox;
     Splitter1: TSplitter;
-    ilFlowchartSymbols: TImageList;
     pnlTerminator: TPanel;
     imgTerminator: TImage;
     pnlProcess: TPanel;
@@ -90,6 +89,8 @@ type
     actChooseFont: TAction;
     ToolButton14: TToolButton;
     reMainInput: TRichEdit;
+    pdMain: TPrintDialog;
+    ilFlowchartSymbols: TImageList;
     procedure pbWorkingAreaMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
     procedure FormCreate(Sender: TObject);
@@ -116,6 +117,7 @@ type
     procedure reMainInputKeyDown(Sender: TObject; var Key: Word;
       Shift: TShiftState);
     procedure reMainInputExit(Sender: TObject);
+    procedure sdMainTypeChange(Sender: TObject);
 
   private
     currentMode: TState;
@@ -170,7 +172,7 @@ const
   OPEN_TAG = 2;
   SAVE_TAG = 3;
   SAVE_AS_TAG = 4;
-  EXPORT_TAG = 5;
+  PRINT_TAG = 5;
   CUT_TAG = 6;
   COPY_TAG = 7;
   PASTE_TAG = 8;
@@ -208,17 +210,39 @@ begin
         end;
       SAVE_TAG:
         begin
-          ShowMessage('Save routine');
+          if FFileName = '' then
+          begin
+            if not(sdMain.Execute()) then
+              Exit;
+
+            FFileName := sdMain.Files[0];
+          end;
+
+          if SameText(ExtractFileExt(FFileName), '.rog') then
+            SaveFileAsRog(FFileName, blocks, labels, lines)
+          else if SameText(ExtractFileExt(FFileName), '.png') then
+            SaveBitMapAsPng(FFileName, pbWorkingArea, blocks, labels, lines);
+
         end;
+
       SAVE_AS_TAG:
-        ShowMessage('Save as routine');
-      EXPORT_TAG:
         begin
           if not(sdMain.Execute()) then
             Exit;
+
           FFileName := sdMain.Files[0];
-          if SameText(ExtractFileExt(FFileName), '.png') then
+
+          if SameText(ExtractFileExt(FFileName), '.rog') then
+            SaveFileAsRog(FFileName, blocks, labels, lines)
+          else if SameText(ExtractFileExt(FFileName), '.png') then
             SaveBitMapAsPng(FFileName, pbWorkingArea, blocks, labels, lines);
+        end;
+
+      PRINT_TAG:
+        begin
+
+          ShowMessage('Print action');
+
         end;
 
       CUT_TAG:
@@ -282,12 +306,13 @@ begin
 
   tempBlock := nil;
   tempLabel := nil;
+  FFileName := '';
 
   selectedSymbolsCount := 0;
   defaultWidth := 50;
   defaultHeight := 25;
   draggingStep := 3;
-  draggingDrawingStep := 30;
+  draggingDrawingStep := 20;
   liningStep := 20;
   textInBlockMargin := 5;
 
@@ -307,7 +332,7 @@ begin
   actOpen.Tag := OPEN_TAG;
   actSave.Tag := SAVE_TAG;
   actSaveAs.Tag := SAVE_AS_TAG;
-  actExport.Tag := EXPORT_TAG;
+  actPrint.Tag := PRINT_TAG;
   actCut.Tag := CUT_TAG;
   actCopy.Tag := COPY_TAG;
   actPaste.Tag := PASTE_TAG;
@@ -362,59 +387,73 @@ begin
   case currentMode of
     stText:
       begin
+
         point := (Sender as TControl).ScreenToClient(Mouse.CursorPos);
 
-        BlockTextingID := GetBlockIdByCoord(point, blocks);
-        LabelTextingID := GetLabelIDByCoord(point, labels);
+        // If user has already typed text and then clicked to the empty place. We should launch RichEdit.Exit
+        if (reMainInput.Enabled = True) then
+        begin
+          reMainInput.Enabled := false;
+          reMainInput.Visible := false;
+        end
 
-        if BlockTextingID <> -1 then
-        begin
-          tempBlock := GetBlockByID(BlockTextingID, blocks);
-          if tempBlock <> nil then
-          begin
-            reMainInput.Left := tempBlock.info.bounds.Left;
-            reMainInput.Top := tempBlock.info.bounds.Top;
-            reMainInput.Width := tempBlock.info.bounds.Right -
-              tempBlock.info.bounds.Left;
-            reMainInput.Height := tempBlock.info.bounds.Bottom -
-              tempBlock.info.bounds.Top;
-            reMainInput.Text := tempBlock.info.TextInfo.Text;
-          end
-          else // In case existed block surprizingly dissapears
-          begin
-            BlockTextingID := -1;
-            Exit;
-          end;
-        end
-        else if LabelTextingID <> -1 then
-        begin
-          tempLabel := GetLabelByID(BlockTextingID, labels);
-          if tempLabel <> nil then
-          begin
-            reMainInput.Left := tempLabel.info.bounds.Left;
-            reMainInput.Top := tempLabel.info.bounds.Top;
-            reMainInput.Width := tempLabel.info.bounds.Right -
-              tempLabel.info.bounds.Left;
-            reMainInput.Height := tempLabel.info.bounds.Bottom -
-              tempLabel.info.bounds.Top;
-            reMainInput.Text := tempLabel.info.Text;
-          end
-          else // In case existed block surprizingly dissapears
-          begin
-            LabelTextingID := -1;
-            Exit;
-          end;
-        end
         else
         begin
-          reMainInput.Left := point.X;
-          reMainInput.Top := point.Y;
-          reMainInput.Height := 5 * fdTextMode.Font.Size;
+
+          BlockTextingID := GetBlockIdByCoord(point, blocks);
+          LabelTextingID := GetLabelIDByCoord(point, labels);
+
+          if BlockTextingID <> -1 then
+          begin
+            tempBlock := GetBlockByID(BlockTextingID, blocks);
+            if tempBlock <> nil then
+            begin
+              reMainInput.Left := tempBlock.info.bounds.Left;
+              reMainInput.Top := tempBlock.info.bounds.Top;
+              reMainInput.Width := tempBlock.info.bounds.Right -
+                tempBlock.info.bounds.Left;
+              reMainInput.Height := tempBlock.info.bounds.Bottom -
+                tempBlock.info.bounds.Top;
+              reMainInput.Text := tempBlock.info.TextInfo.Text;
+            end
+            else // In case existed block surprizingly dissapears
+            begin
+              BlockTextingID := -1;
+              Exit;
+            end;
+          end
+          else if LabelTextingID <> -1 then
+          begin
+            tempLabel := GetLabelByID(BlockTextingID, labels);
+            if tempLabel <> nil then
+            begin
+              reMainInput.Left := tempLabel.info.bounds.Left;
+              reMainInput.Top := tempLabel.info.bounds.Top;
+              reMainInput.Width := tempLabel.info.bounds.Right -
+                tempLabel.info.bounds.Left;
+              reMainInput.Height := tempLabel.info.bounds.Bottom -
+                tempLabel.info.bounds.Top;
+              reMainInput.Text := tempLabel.info.Text;
+            end
+            else // In case existed block surprizingly dissapears
+            begin
+              LabelTextingID := -1;
+              Exit;
+            end;
+          end
+          else
+          begin
+            reMainInput.Left := point.X;
+            reMainInput.Top := point.Y;
+            reMainInput.Height := 5 * fdTextMode.Font.Size;
+          end;
+
+          reMainInput.Enabled := True;
+          reMainInput.Visible := True;
+          reMainInput.SetFocus;
+
         end;
 
-        reMainInput.Enabled := True;
-        reMainInput.Visible := True;
-        reMainInput.SetFocus;
       end;
   end;
 
@@ -761,6 +800,18 @@ begin
     sbMain.HorzScrollBar.Position := sbMain.HorzScrollBar.Position - 10
   else
     sbMain.VertScrollBar.Position := sbMain.VertScrollBar.Position - 10;
+end;
+
+procedure TfrmMain.sdMainTypeChange(Sender: TObject);
+begin
+  case sdMain.FilterIndex of
+    1:
+      sdMain.DefaultExt := 'rog';
+    2:
+      sdMain.DefaultExt := 'png';
+  else
+    sdMain.DefaultExt := '';
+  end;
 end;
 
 end.

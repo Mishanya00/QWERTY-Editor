@@ -32,7 +32,15 @@ end;
 
 procedure SaveFileAsRog(const FileToSaveAs: string;
   blocks: PBlock; labels: PText; lines: PLine);
+
+var
+  JustAFile: TextFile;
 begin
+
+  Assign(JustAFile, FileToSaveAs);
+  rewrite(JustAFile);
+  write(JustAFile, 'test yeeah');
+  CloseFile(JustAFile);
 
 end;
 

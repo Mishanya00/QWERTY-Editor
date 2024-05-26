@@ -15,6 +15,7 @@
 #
 # Visual LiveBindings file. Added in Delphi XE2.
 # Uncomment this if you are not using LiveBindings Designer.
+# I DONT USE IT SO I IGNORE IT
 *.vlb
 #
 # Deployment Manager configuration file for your project. Added in Delphi XE2.
