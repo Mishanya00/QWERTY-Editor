@@ -20,7 +20,8 @@ object frmDelphiListing: TfrmDelphiListing
     ReadOnly = True
     ScrollBars = ssBoth
     TabOrder = 0
-    ExplicitWidth = 809
+    ExplicitWidth = 842
+    ExplicitHeight = 560
   end
   object panelListingActions: TPanel
     Left = 848
@@ -29,6 +30,8 @@ object frmDelphiListing: TfrmDelphiListing
     Height = 569
     Align = alRight
     TabOrder = 1
+    ExplicitLeft = 842
+    ExplicitHeight = 560
     object btnGenerateFlowchart: TButton
       Left = 13
       Top = 250

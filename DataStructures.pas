@@ -9,8 +9,10 @@ type
 
   TState = (stNormal, stSelected, stLines, stText);
   TLineType = (ltStraight, ltArrow, ltDualArrow);
-  TBlockType = (btTerminator, btProcess, btDecision, btData, btPredefined, btTeleport,
-    btCycleUp, btCycleDown, btStoredData, btStorageDevice);
+  TBlockType = (btTerminator, btProcess, btDecision, btData, btPredefined,
+    btTeleport, btCycleUp, btCycleDown, btStoredData, btStorageDevice,
+    btSequentialData, btDirectData, btManualInput, btCard, btPaperTape,
+    btDisplay, btManualOperation, btPreparation, btDocument, btInvisible);
 
   TFixedString = string[100];
 
@@ -92,28 +94,36 @@ function isPointInLine(point: TPoint; line: PLine): boolean;
 function RemoveBlock(blocks: PBlock; idToRemove: integer): boolean;
 function RemoveLabel(labels: PText; idToRemove: integer): boolean;
 function RemoveLine(lines: PLine; idToRemove: integer): boolean;
-procedure RemoveSelectedSymbols(blocks: PBlock; labels: PText;
-  lines: PLine);
+procedure RemoveSelectedSymbols(blocks: PBlock; labels: PText; lines: PLine);
 
+procedure SelectSymbolsInArea(area: TRect; blocks: PBlock; labels: PText;
+  lines: PLine);
 procedure SelectSymbol(blocks: PBlock; lines: PLine; labels: PText;
   id: integer);
 procedure UnselectSymbols(blocks: PBlock; labels: PText; lines: PLine);
 procedure SetSymbolsState(state: TState; blocks: PBlock; labels: PText;
   lines: PLine);
+procedure SetSymbolState(state: TState; id: integer; blocks: PBlock;
+  labels: PText; lines: PLine);
+
 procedure SetLineCoord(line: PLine; start, finish: TPoint);
 procedure SetBlockTextInfo(id: integer; TextInfo: TTextInfo; blocks: PBlock);
 procedure SetLabelInfo(id: integer; TextInfo: TTextInfo; labels: PText);
 
-procedure OffsetSelectedSymbols(blocks: PBlock; labels: PText;
-  lines: PLine; offsetX, offsetY: integer);
+procedure OffsetSelectedSymbols(blocks: PBlock; labels: PText; lines: PLine;
+  offsetX, offsetY: integer);
+procedure SetSymbolBounds(id: integer; bounds: TRect; blocks: PBlock;
+  labels: PText);
 
 procedure InitDataStructures(var blocks: PBlock; var lines: PLine;
-  var labels: PText);
+  var labels: PText; var blocksClipboard: PBlock; var labelsClipBoard: PText;
+  var linesClipBoard: PLine);
 
 implementation
 
 function Max(a, b: integer): integer; forward;
 function Min(a, b: integer): integer; forward;
+function PointInRect(point: TPoint; rect: TRect): boolean; forward;
 
 var
   CurrentID: integer;
@@ -130,16 +140,17 @@ begin
     blocks := blocks.next;
 
   New(blocks.next);
+  blocks := blocks.next;
 
   blocks.state := stNormal;
-  blocks.next.info := blockToAdd;
-  blocks.next.info.id := CurrentID;
+  blocks.info := blockToAdd;
+  blocks.info.id := CurrentID;
 
   blocks.pLLine := nil;
   blocks.pULine := nil;
   blocks.pRLine := nil;
   blocks.pBLine := nil;
-  blocks.next.next := nil;
+  blocks.next := nil;
 
   Result := CurrentID;
 end;
@@ -440,10 +451,9 @@ begin
   ConstructLine(line);
 end;
 
-procedure OffsetSelectedSymbols(blocks: PBlock; labels: PText;
-  lines: PLine; offsetX, offsetY: integer);
+procedure OffsetSelectedSymbols(blocks: PBlock; labels: PText; lines: PLine;
+  offsetX, offsetY: integer);
 begin
-
   while (blocks.next <> nil) do
   begin
     blocks := blocks.next;
@@ -492,6 +502,38 @@ begin
       ConstructLine(lines);
     end;
   end;
+end;
+
+procedure SetSymbolBounds(id: integer; bounds: TRect; blocks: PBlock;
+  labels: PText);
+begin
+  while (blocks.next <> nil) do
+  begin
+    blocks := blocks.next;
+
+    if blocks.info.id = id then
+      blocks.info.bounds := bounds;
+  end;
+
+  while (labels.next <> nil) do
+  begin
+    labels := labels.next;
+
+    if labels.info.id = id then
+      labels.info.bounds := bounds;
+  end;
+end;
+
+function PointInRect(point: TPoint; rect: TRect): boolean;
+begin
+  if (point.x > Min(rect.left, rect.right)) and
+    (point.x < Max(rect.left, rect.right)) and
+    (point.y > Min(rect.top, rect.bottom)) and
+    (point.y < Max(rect.top, rect.bottom)) then
+
+    Result := true
+  else
+    Result := false;
 end;
 
 function RemoveBlock(blocks: PBlock; idToRemove: integer): boolean;
@@ -590,8 +632,7 @@ begin
 
 end;
 
-procedure RemoveSelectedSymbols(blocks: PBlock; labels: PText;
-  lines: PLine);
+procedure RemoveSelectedSymbols(blocks: PBlock; labels: PText; lines: PLine);
 
 var
   temp: PBlock;
@@ -672,8 +713,78 @@ begin
   end;
 end;
 
+procedure SelectSymbolsInArea(area: TRect; blocks: PBlock; labels: PText;
+  lines: PLine);
+begin
+  while blocks.next <> nil do
+  begin
+    blocks := blocks.next;
+
+    if PointInRect(blocks.info.center, area) then
+      blocks.state := stSelected;
+
+  end;
+
+  while labels.next <> nil do
+  begin
+    labels := labels.next;
+
+    if PointInRect(point(labels.info.bounds.left + (labels.info.bounds.right -
+      labels.info.bounds.left) div 2, labels.info.bounds.top +
+      (labels.info.bounds.bottom - labels.info.bounds.top) div 2), area) then
+
+      labels.state := stSelected;
+
+  end;
+
+  while lines.next <> nil do
+  begin
+    lines := lines.next;
+
+    if PointInRect(lines.info.start, area) and PointInRect(lines.info.finish, area)
+    then
+      lines.state := stSelected;
+  end;
+end;
+
 procedure SelectSymbol(blocks: PBlock; lines: PLine; labels: PText;
   id: integer);
+begin
+
+  while blocks.next <> nil do
+  begin
+    blocks := blocks.next;
+    if blocks.info.id = id then
+    begin
+      blocks.state := stSelected;
+      exit;
+    end;
+  end;
+
+  while labels.next <> nil do
+  begin
+    labels := labels.next;
+    if labels.info.id = id then
+    begin
+      labels.state := stSelected;
+      exit;
+    end;
+  end;
+
+  while lines.next <> nil do
+  begin
+    lines := lines.next;
+    if lines.info.id = id then
+    begin
+      lines.state := stSelected;
+      exit;
+    end;
+  end;
+
+end;
+
+procedure SetSymbolState(state: TState; id: integer; blocks: PBlock;
+  labels: PText; lines: PLine);
 begin
 
   while blocks.next <> nil do
@@ -733,19 +844,24 @@ begin
 end;
 
 procedure InitDataStructures(var blocks: PBlock; var lines: PLine;
-  var labels: PText);
+  var labels: PText; var blocksClipboard: PBlock; var labelsClipBoard: PText;
+  var linesClipBoard: PLine);
 begin
-
   CurrentID := 0;
+
   New(blocks);
   blocks.next := nil;
-
   New(lines);
   lines.next := nil;
-
   New(labels);
   labels.next := nil;
 
+  New(blocksClipboard);
+  blocksClipboard.next := nil;
+  New(labelsClipBoard);
+  labelsClipBoard.next := nil;
+  New(linesClipBoard);
+  linesClipBoard.next := nil;
 end;
 
 procedure UnselectSymbols(blocks: PBlock; labels: PText; lines: PLine);

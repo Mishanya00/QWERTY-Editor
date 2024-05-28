@@ -120,7 +120,6 @@ type
     ToolButton3: TToolButton;
     ToolButton4: TToolButton;
     ToolButton5: TToolButton;
-    panelSymbols: TPanel;
     actPaste: TAction;
     sbSupport: TStatusBar;
     N9: TMenuItem;
@@ -135,7 +134,6 @@ type
     pnlData: TPanel;
     imgData: TImage;
     sbMain: TScrollBox;
-    Splitter1: TSplitter;
     pnlTerminator: TPanel;
     imgTerminator: TImage;
     pnlProcess: TPanel;
@@ -175,6 +173,26 @@ type
     imgStoredData: TImage;
     pnlStorageDevice: TPanel;
     imgStorageDevice: TImage;
+    pnlSequentialData: TPanel;
+    imgSequentialData: TImage;
+    pnlDirectData: TPanel;
+    imgDirectData: TImage;
+    pnlManualInput: TPanel;
+    imgManualInput: TImage;
+    pnlCard: TPanel;
+    imgCard: TImage;
+    pnlPaperTape: TPanel;
+    imgPaperTape: TImage;
+    pnlDisplay: TPanel;
+    imgDisplay: TImage;
+    pnlManualOperation: TPanel;
+    imgManualOperation: TImage;
+    pnlPreparation: TPanel;
+    imgPreparation: TImage;
+    pngDocument: TPanel;
+    imgDocument: TImage;
+    sbInstruments: TScrollBox;
+    Splitter1: TSplitter;
     procedure pbWorkingAreaMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
     procedure FormCreate(Sender: TObject);
@@ -211,6 +229,10 @@ type
     labels: PText;
     lines: PLine;
 
+    blocksClipboard: PBlock;
+    labelsClipboard: PText;
+    linesClipboard: PLine;
+
     defaultWidth: Integer;
     defaultHeight: Integer;
 
@@ -220,14 +242,15 @@ type
     tempLineId: Integer;
     tempLineAddr: PLine;
 
+    startSelectingPoint: TPoint;
+    startLiningPoint: TPoint;
     startDraggingPoint: TPoint;
     startDraggingDrawingPoint: TPoint;
+    startCopyPoint: TPoint;
     draggingStep: Integer;
     draggingDrawingStep: Integer;
     liningStep: Integer;
     textInBlockMargin: Integer;
-
-    startLiningPoint: TPoint;
 
     fLining: Boolean; // Process of creating lines in lines mode
     fDragging: Boolean;
@@ -237,6 +260,7 @@ type
 
     BlockTextingID: Integer;
     LabelTextingID: Integer;
+    SelectingID: Integer;
     // ID of block being texting inside. Equals -1 if outside any block
 
     selectedSymbolsCount: Integer;
@@ -282,14 +306,20 @@ begin
     case TAction(Sender).Tag of
 
       CREATE_TAG:
-        ShowMessage('Create routine');
+        begin
+          FFileName := '';
+          SetSymbolsState(stSelected, blocks, labels, lines);
+          RemoveSelectedSymbols(blocks, labels, lines);
+          pbWorkingArea.Invalidate;
+        end;
 
       OPEN_TAG:
         begin
           if not(odMain.Execute()) then
             Exit;
           FFileName := odMain.Files[0];
-          if SameText(ExtractFileExt(FFileName), '.png') then
+          if SameText(ExtractFileExt(FFileName), '.dpr') or
+            SameText(ExtractFileExt(FFileName), '.pas') then
           begin
             frmDelphiListing.Show();
             frmDelphiListing.memoListing.lines.LoadFromFile(FFileName);
@@ -366,11 +396,129 @@ begin
         end;
 
       CUT_TAG:
-        ShowMessage('CUT routine');
+        begin
+          actionsExecuter(actCopy);
+          RemoveSelectedSymbols(blocks, labels, lines);
+          pbWorkingArea.Invalidate;
+        end;
+
       COPY_TAG:
-        ShowMessage('COPY routine');
+        begin
+
+          var
+            tempBlock: PBlock;
+          var
+            tempLabel: PText;
+          var
+            tempLine: PLine;
+
+          startCopyPoint := pbWorkingArea.ScreenToClient(Mouse.CursorPos);
+
+          SetSymbolsState(stSelected, blocksClipboard, labelsClipboard,
+            linesClipboard);
+          RemoveSelectedSymbols(blocksClipboard, labelsClipboard,
+            linesClipboard);
+
+          tempBlock := blocks;
+          tempLabel := labels;
+          tempLine := lines;
+
+          while blocks.next <> nil do
+          begin
+            blocks := blocks.next;
+            if blocks.State = stSelected then
+              AddBlock(blocksClipboard, blocks.info);
+          end;
+
+          blocks := tempBlock;
+
+          while labels.next <> nil do
+          begin
+            labels := labels.next;
+            if labels.State = stSelected then
+              AddLabel(labelsClipboard, labels.info);
+          end;
+
+          labels := tempLabel;
+
+          while lines.next <> nil do
+          begin
+            lines := lines.next;
+            if lines.State = stSelected then
+              AddLine(linesClipboard, lines.info);
+          end;
+
+          lines := tempLine;
+
+        end;
+
       PASTE_TAG:
-        ShowMessage('PASTE routine');
+        begin
+
+          var
+            mouseCoord: TPoint;
+          var
+            difX, difY: Integer;
+          var
+            tempBlock: PBlock;
+          var
+            tempLabel: PText;
+          var
+            tempLine: PLine;
+
+          mouseCoord := pbWorkingArea.ScreenToClient(Mouse.CursorPos);
+          difX := mouseCoord.X - startCopyPoint.X;
+          difY := mouseCoord.Y - startCopyPoint.Y;
+
+          startCopyPoint := mouseCoord;
+
+          tempBlock := blocksClipboard;
+          tempLabel := labelsClipboard;
+          tempLine := linesClipboard;
+
+          SetSymbolsState(stNormal, blocks, labels, lines);
+
+          while blocksClipboard.next <> nil do
+          begin
+            blocksClipboard := blocksClipboard.next;
+            OffsetRect(blocksClipboard.info.bounds, difX, difY);
+            OffsetRect(blocksClipboard.info.TextInfo.bounds, difX, difY);
+            Inc(blocksClipboard.info.center.X, difX);
+            Inc(blocksClipboard.info.center.Y, difY);
+            SetSymbolState(stSelected, AddBlock(blocks, blocksClipboard.info),
+              blocks, labels, lines);
+          end;
+
+          blocksClipboard := tempBlock;
+
+          while labelsClipboard.next <> nil do
+          begin
+            labelsClipboard := labelsClipboard.next;
+            OffsetRect(labelsClipboard.info.bounds, difX, difY);
+            SetSymbolState(stSelected, AddLabel(labels, labelsClipboard.info),
+              blocks, labels, lines);
+          end;
+
+          labelsClipboard := tempLabel;
+
+          while linesClipboard.next <> nil do
+          begin
+            linesClipboard := linesClipboard.next;
+
+            Inc(linesClipboard.info.start.X, difX);
+            Inc(linesClipboard.info.start.Y, difY);
+            Inc(linesClipboard.info.finish.X, difX);
+            Inc(linesClipboard.info.finish.Y, difY);
+
+            SetSymbolState(stSelected, AddLine(lines, linesClipboard.info),
+              blocks, labels, lines);
+          end;
+
+          linesClipboard := tempLine;
+
+          pbWorkingArea.Invalidate;
+        end;
+
       SELECT_ALL_TAG:
         begin
           if currentMode = stNormal then
@@ -384,6 +532,11 @@ begin
         begin
           currentMode := stNormal;
           SetSymbolsState(stNormal, blocks, labels, lines);
+
+          // Disable RichEdit in case we left Text mode
+          reMainInput.Enabled := false;
+          reMainInput.Visible := false;
+
           sbSupport.Panels[1].Text := 'Текущий режим: Основной';
           pbWorkingArea.Invalidate;
         end;
@@ -416,14 +569,16 @@ end;
 procedure TfrmMain.FormCreate(Sender: TObject);
 begin
 
-  InitDataStructures(blocks, lines, labels);
-  InitDrawingProperties();
+  InitDataStructures(blocks, lines, labels, blocksClipboard, labelsClipboard,
+    linesClipboard);
 
+  InitDrawingProperties();
+  SetCanvaAttributes(pbWorkingArea.Canvas, stNormal);
   // A4 ?
   pbWorkingArea.Width := 594;
   pbWorkingArea.Height := 841;
 
-  SetCanvaAttributes(pbWorkingArea.Canvas, stNormal);
+  currentMode := stNormal;
   sbSupport.Panels[1].Text := 'Текущий режим: Основной';
 
   // fCentered := false;
@@ -449,6 +604,7 @@ begin
 
   BlockTextingID := -1;
   LabelTextingID := -1;
+  SelectingID := -1;
 
   // Assignment of actions' tags
   actCreate.Tag := CREATE_TAG;
@@ -476,6 +632,15 @@ begin
   imgCycleDown.Tag := 8;
   imgStoredData.Tag := 9;
   imgStorageDevice.Tag := 10;
+  imgSequentialData.Tag := 11;
+  imgDirectData.Tag := 12;
+  imgManualInput.Tag := 13;
+  imgCard.Tag := 14;
+  imgPaperTape.Tag := 15;
+  imgDisplay.Tag := 16;
+  imgManualOperation.Tag := 17;
+  imgPreparation.Tag := 18;
+  imgDocument.Tag := 19;
 
   windowState := wsMaximized;
 end;
@@ -545,7 +710,8 @@ begin
               reMainInput.Font.Name := tempBlock.info.TextInfo.fontName;
               reMainInput.Text := tempBlock.info.TextInfo.Text;
             end
-            else // In case existed block surprizingly dissapears
+            else
+            // In case existed block surprizingly dissapears
             begin
               BlockTextingID := -1;
               Exit;
@@ -566,7 +732,8 @@ begin
               reMainInput.Font.Name := tempLabel.info.fontName;
               reMainInput.Text := tempLabel.info.Text;
             end
-            else // In case existed block surprizingly dissapears
+            else
+            // In case existed block surprizingly dissapears
             begin
               LabelTextingID := -1;
               Exit;
@@ -669,6 +836,12 @@ begin
       end;
     9:
       begin
+
+        Dec(tempBlock.bounds.Left,
+          (tempBlock.bounds.Right - tempBlock.bounds.Left) div 10);
+        Dec(tempBlock.bounds.Right,
+          (tempBlock.bounds.Right - tempBlock.bounds.Left) div 10);
+
         tempBlock.blockType := btStoredData;
         AddBlock(blocks, tempBlock);
       end;
@@ -677,6 +850,53 @@ begin
         tempBlock.bounds := Rect(X - defaultHeight, Y - defaultHeight,
           X + defaultHeight, Y + defaultHeight);
         tempBlock.blockType := btStorageDevice;
+        AddBlock(blocks, tempBlock);
+      end;
+    11:
+      begin
+        tempBlock.bounds := Rect(X - defaultHeight, Y - defaultHeight,
+          X + defaultHeight, Y + defaultHeight);
+        tempBlock.blockType := btSequentialData;
+        AddBlock(blocks, tempBlock);
+      end;
+    12:
+      begin
+        tempBlock.blockType := btDirectData;
+        AddBlock(blocks, tempBlock);
+      end;
+    13:
+      begin
+        tempBlock.blockType := btManualInput;
+        AddBlock(blocks, tempBlock);
+      end;
+    14:
+      begin
+        tempBlock.blockType := btCard;
+        AddBlock(blocks, tempBlock);
+      end;
+    15:
+      begin
+        tempBlock.blockType := btPaperTape;
+        AddBlock(blocks, tempBlock);
+      end;
+    16:
+      begin
+        tempBlock.blockType := btDisplay;
+        AddBlock(blocks, tempBlock);
+      end;
+    17:
+      begin
+        tempBlock.blockType := btManualOperation;
+        AddBlock(blocks, tempBlock);
+      end;
+    18:
+      begin
+        tempBlock.blockType := btPreparation;
+        AddBlock(blocks, tempBlock);
+      end;
+    19:
+      begin
+        tempBlock.blockType := btDocument;
         AddBlock(blocks, tempBlock);
       end;
   end;
@@ -729,6 +949,10 @@ begin
               begin
                 SetSymbolsState(stNormal, blocks, labels, lines);
                 fSelecting := True;
+                startSelectingPoint.X := X;
+                startSelectingPoint.Y := Y;
+                startDraggingPoint.X := X;
+                startDraggingPoint.Y := Y;
               end;
             end;
         end;
@@ -814,9 +1038,9 @@ begin
         pbWorkingArea.Invalidate;
       end;
     end;
-  end;
+  end
 
-  if fLining = True then
+  else if fLining = True then
   begin
     if (abs(X - startLiningPoint.X) >= liningStep) or
       (abs(Y - startLiningPoint.Y) >= liningStep) then
@@ -848,11 +1072,36 @@ begin
 
       pbWorkingArea.Invalidate;
     end;
-  end;
+  end
 
-  if fSelecting = True then
+  else if fSelecting = True then
   begin
+    if (abs(X - startDraggingPoint.X) >= draggingStep) or
+      (abs(Y - startDraggingPoint.Y) >= draggingStep) then
+    begin
 
+      if SelectingID <> -1 then
+      begin
+        SetSymbolBounds(SelectingID, Rect(startSelectingPoint.X,
+          startSelectingPoint.Y, X, Y), blocks, labels);
+
+        startDraggingPoint.X := X;
+        startDraggingPoint.Y := Y;
+      end
+      else
+      begin
+        var
+          tempBlock: TBlockInfo;
+
+        tempBlock.blockType := btInvisible;
+        tempBlock.bounds := Rect(X - defaultWidth, Y - defaultHeight,
+          X + defaultWidth, Y + defaultHeight);
+        SelectingID := AddBlock(blocks, tempBlock);
+      end;
+
+      pbWorkingArea.Invalidate;
+
+    end;
   end;
 
 end;
@@ -865,12 +1114,24 @@ begin
     fDragging := false;
     pbWorkingArea.Invalidate;
   end;
+  if fSelecting = True then
+  begin
+
+    SelectSymbolsInArea(Rect(startSelectingPoint.X, startSelectingPoint.Y, X,
+      Y), blocks, labels, lines);
+
+    fSelecting := false;
+    RemoveBlock(blocks, SelectingID); // Remove invisible symbol
+    SelectingID := -1;
+    pbWorkingArea.Invalidate;
+  end;
+
   fLining := false;
-  fSelecting := false;
 end;
 
 procedure TfrmMain.pbWorkingAreaPaint(Sender: TObject);
 begin
+  SetCanvaAttributes(pbWorkingArea.Canvas, stNormal);
   DrawAll(pbWorkingArea.Canvas, blocks, labels, lines);
   DrawBorders(pbWorkingArea.Canvas, pbWorkingArea.Width - 1,
     pbWorkingArea.Height - 1);

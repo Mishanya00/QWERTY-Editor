@@ -19,6 +19,16 @@ procedure DrawDataSymbol(canva: TCanvas; bounds: TRect);
 procedure DrawPredefinedSymbol(canva: TCanvas; bounds: TRect);
 procedure DrawTeleportSymbol(canva: TCanvas; bounds: TRect);
 procedure DrawStorageDeviceSymbol(canva: TCanvas; bounds: TRect);
+procedure DrawStoredDataSymbol(canva: TCanvas; bounds: TRect);
+procedure DrawDirectDataSymbol(canva: TCanvas; bounds: TRect);
+procedure DrawSequentialDataSymbol(canva: TCanvas; bounds: TRect);
+procedure DrawManualInputSymbol(canva: TCanvas; bounds: TRect);
+procedure DrawCardSymbol(canva: TCanvas; bounds: TRect);
+procedure DrawPaperTapeSymbol(canva: TCanvas; bounds: TRect);
+procedure DrawDisplaySymbol(canva: TCanvas; bounds: TRect);
+procedure DrawManualOperationSymbol(canva: TCanvas; bounds: TRect);
+procedure DrawPreparationSymbol(canva: TCanvas; bounds: TRect);
+procedure DrawDocumentSymbol(canva: TCanvas; bounds: TRect);
 
 procedure DrawLabel(canva: TCanvas; labelToDraw: TTextInfo);
 procedure DrawLine(canva: TCanvas; line: PLine);
@@ -95,8 +105,30 @@ begin
         DrawCycleUp(canva, blocks.info.bounds);
       btCycleDown:
         DrawCycleDown(canva, blocks.info.bounds);
+      btStoredData:
+        DrawStoredDataSymbol(canva, blocks.info.bounds);
       btStorageDevice:
         DrawStorageDeviceSymbol(canva, blocks.info.bounds);
+      btSequentialData:
+        DrawSequentialDataSymbol(canva, blocks.info.bounds);
+      btManualInput:
+        DrawManualInputSymbol(canva, blocks.info.bounds);
+      btCard:
+        DrawCardSymbol(canva, blocks.info.bounds);
+      btManualOperation:
+        DrawManualOperationSymbol(canva, blocks.info.bounds);
+      btDirectData:
+        DrawDirectDataSymbol(canva, blocks.info.bounds);
+      btPreparation:
+        DrawPreparationSymbol(canva, blocks.info.bounds);
+      btDocument:
+        DrawDocumentSymbol(canva, blocks.info.bounds);
+      btPaperTape:
+        DrawPaperTapeSymbol(canva, blocks.info.bounds);
+      btDisplay:
+        DrawDisplaySymbol(canva, blocks.info.bounds);
+      btInvisible:
+        DrawSelection(canva, blocks.info.bounds);
     end;
 
     prevBrushStyle := canva.Brush.Style;
@@ -131,6 +163,22 @@ begin
     LineTo(width, height);
     LineTo(0, height);
     LineTo(0, 0);
+  end;
+end;
+
+procedure DrawCardSymbol(canva: TCanvas; bounds: TRect);
+var
+  diff: integer;
+begin
+
+  diff := (bounds.Right - bounds.Left) div 5;
+
+  with canva do
+  begin
+    Polygon([Point(bounds.Left, bounds.Bottom), Point(bounds.Left,
+      bounds.Top + diff), Point(bounds.Left + diff, bounds.Top),
+      Point(bounds.Right, bounds.Top), Point(bounds.Right, bounds.Bottom),
+      Point(bounds.Left, bounds.Bottom)]);
   end;
 end;
 
@@ -176,6 +224,39 @@ begin
 
 end;
 
+procedure DrawDirectDataSymbol(canva: TCanvas; bounds: TRect);
+var
+  diffY, diffX: integer;
+begin
+
+  diffY := (bounds.Bottom - bounds.Top) div 4;
+  diffX := (bounds.Right - bounds.Left) div 4;
+
+  with canva do
+  begin
+    FillRect(bounds);
+
+    Ellipse(bounds.Right - diffX, bounds.Top, bounds.Right, bounds.Bottom);
+
+    MoveTo(bounds.Left + diffX div 2, bounds.Top);
+    LineTo(bounds.Right - diffX div 2, bounds.Top);
+    MoveTo(bounds.Left + diffX div 2, bounds.Bottom);
+    LineTo(bounds.Right - diffX div 2, bounds.Bottom);
+
+    Arc(bounds.Left, bounds.Top, bounds.Left + diffX,
+      bounds.Bottom, bounds.Left + diffX div 2, bounds.Top, bounds.Left + diffX div 2,
+      bounds.Bottom);
+  end;
+end;
+
+procedure DrawDisplaySymbol(canva: TCanvas; bounds: TRect);
+begin
+  with canva do
+  begin
+    Rectangle(bounds);
+  end;
+end;
+
 procedure DrawDecisionSymbol(canva: TCanvas; bounds: TRect);
 begin
   with canva do
@@ -184,6 +265,29 @@ begin
       Point(bounds.Right, (bounds.Bottom + bounds.Top) div 2),
       Point((bounds.Left + bounds.Right) div 2, bounds.Bottom),
       Point(bounds.Left, (bounds.Bottom + bounds.Top) div 2)]);
+  end;
+end;
+
+procedure DrawDocumentSymbol(canva: TCanvas; bounds: TRect);
+var
+  diffY, diffX: integer;
+begin
+
+  diffY := (bounds.Bottom - bounds.Top) div 5;
+  diffX := (bounds.Right - bounds.Left) div 2;
+
+  with canva do
+  begin
+    FillRect(bounds);
+    MoveTo(bounds.Left, bounds.Bottom);
+    LineTo(bounds.Left, bounds.Top);
+    LineTo(bounds.Right, bounds.Top);
+    LineTo(bounds.Right, bounds.Bottom);
+    Arc(bounds.Left, bounds.Bottom - diffY, bounds.Left + diffX,
+      bounds.Bottom + diffY, bounds.Left, bounds.Bottom, bounds.Left + diffX,
+      bounds.Bottom);
+    Arc(bounds.Right - diffX, bounds.Bottom - diffY, bounds.Right, bounds.Bottom + diffY,
+      bounds.Right, bounds.Bottom, bounds.Right - diffX, bounds.Bottom);
   end;
 end;
 
@@ -208,6 +312,10 @@ begin
     begin
       LineTo(line.vertexes[i].x, line.vertexes[i].y);
     end;
+    {
+    if line.info.lineType = ltArrow then
+      Polygon([Point(...
+    }
 
   end;
 end;
@@ -231,6 +339,78 @@ begin
 
   SetCanvaAttributes(canva, stNormal); // restore default drawing settings
 
+end;
+
+procedure DrawManualInputSymbol(canva: TCanvas; bounds: TRect);
+begin
+  with canva do
+  begin
+    Polygon([Point(bounds.Left, bounds.Bottom), Point(bounds.Left,
+      (bounds.Bottom + bounds.Top) div 2), Point(bounds.Right, bounds.Top),
+      Point(bounds.Right, bounds.Bottom)]);
+  end;
+end;
+
+procedure DrawManualOperationSymbol(canva: TCanvas; bounds: TRect);
+var
+  diff: integer;
+begin
+  diff := (bounds.Right - bounds.Left) div 4;
+  with canva do
+  begin
+    Polygon([Point(bounds.Left + diff, bounds.Bottom), Point(bounds.Left,
+      bounds.Top), Point(bounds.Right, bounds.Top), Point(bounds.Right - diff,
+      bounds.Bottom)]);
+  end;
+end;
+
+procedure DrawPaperTapeSymbol(canva: TCanvas; bounds: TRect);
+var
+  diffY, diffX: integer;
+begin
+
+  diffY := (bounds.Bottom - bounds.Top) div 5;
+  diffX := (bounds.Right - bounds.Left) div 2;
+
+  with canva do
+  begin
+    FillRect(bounds);
+
+    Arc(bounds.Left, bounds.Top - diffY, bounds.Left + diffX,
+      bounds.Top + diffY, bounds.Left, bounds.Top, bounds.Left + diffX,
+      bounds.Top);
+    Arc(bounds.Right - diffX, bounds.Top - diffY, bounds.Right, bounds.Top + diffY,
+      bounds.Right, bounds.Top, bounds.Right - diffX, bounds.Top);
+
+    MoveTo(bounds.Left, bounds.Top);
+    LineTo(bounds.Left, bounds.Bottom);
+    MoveTo(bounds.Right, bounds.Top);
+    LineTo(bounds.Right, bounds.Bottom);
+
+    Arc(bounds.Left, bounds.Bottom - diffY, bounds.Left + diffX,
+      bounds.Bottom + diffY, bounds.Left, bounds.Bottom, bounds.Left + diffX,
+      bounds.Bottom);
+    Arc(bounds.Right - diffX, bounds.Bottom - diffY, bounds.Right, bounds.Bottom + diffY,
+      bounds.Right, bounds.Bottom, bounds.Right - diffX, bounds.Bottom);
+  end;
+end;
+
+procedure DrawPreparationSymbol(canva: TCanvas; bounds: TRect);
+var
+  diffX, diffY: integer;
+begin
+
+  diffX := (bounds.Right - bounds.Left) div 4;
+  diffY := (bounds.Bottom - bounds.Top) div 2;
+
+  with canva do
+  begin
+    Polygon([Point(bounds.Left, bounds.Top + diffY), Point(bounds.Left + diffX,
+      bounds.Top), Point(bounds.Right - diffX, bounds.Top), Point(bounds.Right,
+      bounds.Top + diffY), Point(bounds.Right - diffX, bounds.Bottom),
+      Point(bounds.Left + diffX, bounds.Bottom), Point(bounds.Left,
+      bounds.Top + diffY)]);
+  end;
 end;
 
 procedure DrawProcessSymbol(canva: TCanvas; bounds: TRect);
@@ -279,16 +459,53 @@ begin
 
 end;
 
+procedure DrawSequentialDataSymbol(canva: TCanvas; bounds: TRect);
+begin
+  with canva do
+  begin
+    Ellipse(bounds.Left, bounds.Top, bounds.Right, bounds.Bottom);
+    MoveTo(bounds.Left + (bounds.Right - bounds.Left) div 2, bounds.Bottom);
+    LineTo(bounds.Right, bounds.Bottom);
+  end;
+end;
+
 procedure DrawStorageDeviceSymbol(canva: TCanvas; bounds: TRect);
 begin
   with canva do
   begin
     Rectangle(bounds);
-    MoveTo(bounds.Left+5, bounds.Top);
-    LineTo(bounds.Left+5, bounds.Bottom);
-    MoveTo(bounds.Left, bounds.Top+5);
-    LineTo(bounds.Right, bounds.Top+5);
+    MoveTo(bounds.Left + 5, bounds.Top);
+    LineTo(bounds.Left + 5, bounds.Bottom);
+    MoveTo(bounds.Left, bounds.Top + 5);
+    LineTo(bounds.Right, bounds.Top + 5);
   end;
+end;
+
+procedure DrawStoredDataSymbol(canva: TCanvas; bounds: TRect);
+var
+  diff: integer;
+
+begin
+
+  diff := (bounds.Right - bounds.Left) div 10;
+
+  with canva do
+  begin
+
+    FillRect(bounds);
+
+    MoveTo(bounds.Left, bounds.Top);
+    LineTo(bounds.Right, bounds.Top);
+    MoveTo(bounds.Left, bounds.Bottom);
+    LineTo(bounds.Right, bounds.Bottom);
+
+    Arc(bounds.Left - diff, bounds.Top, bounds.Left + diff, bounds.Bottom,
+      bounds.Left - 2, bounds.Top, bounds.Left - 2, bounds.Bottom);
+    Arc(bounds.Right - diff, bounds.Top, bounds.Right + diff, bounds.Bottom,
+      bounds.Right - 2, bounds.Top, bounds.Right - 2, bounds.Bottom);
+
+  end;
+
 end;
 
 procedure DrawTeleportSymbol(canva: TCanvas; bounds: TRect);
@@ -322,6 +539,7 @@ begin
   hookBrushColor := clBlue;
   hookPenWidth := 1;
   hookSize := 3;
+
 end;
 
 procedure SetCanvaAttributes(canva: TCanvas; state: TState);
