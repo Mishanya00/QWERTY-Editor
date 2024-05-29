@@ -6,7 +6,8 @@ uses
   DataStructures in 'DataStructures.pas',
   SourceListing in 'SourceListing.pas' {frmDelphiListing},
   DrawSymbols in 'DrawSymbols.pas',
-  FilesHandling in 'FilesHandling.pas';
+  FilesHandling in 'FilesHandling.pas',
+  StackRoutine in 'StackRoutine.pas';
 
 {$R *.res}
 

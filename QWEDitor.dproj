@@ -109,6 +109,7 @@
         </DCCReference>
         <DCCReference Include="DrawSymbols.pas"/>
         <DCCReference Include="FilesHandling.pas"/>
+        <DCCReference Include="StackRoutine.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

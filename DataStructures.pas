@@ -75,6 +75,16 @@ type
     next: PLine;
   end;
 
+  PStack = ^TStack;
+
+  TStack = record
+    blocks: PBlock;
+    labels: PText;
+    lines: PLine;
+    next: PStack;
+  end;
+
+
 function AddBlock(blocks: PBlock; blockToAdd: TBlockInfo): integer;
 function AddLine(lines: PLine; lineToAdd: TLineInfo): integer;
 function AddLabel(labels: PText; labelToAdd: TTextInfo): integer;

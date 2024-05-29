@@ -15,7 +15,7 @@
         <Projects Include="D:\Education\BSUIR\Disciplines\Delphi\Delphi_Projects\GUI_Apps\TestForm8\Project3.dproj">
             <Dependencies/>
         </Projects>
-        <Projects Include="..\White-Endorphin\Main.dproj">
+        <Projects Include="D:\Education\BSUIR\Disciplines\Algorithms and Data Structures\Labs\Lab_3\Laba3.dproj">
             <Dependencies/>
         </Projects>
     </ItemGroup>
@@ -62,23 +62,23 @@
     <Target Name="Project3:Make">
         <MSBuild Projects="D:\Education\BSUIR\Disciplines\Delphi\Delphi_Projects\GUI_Apps\TestForm8\Project3.dproj" Targets="Make"/>
     </Target>
-    <Target Name="Main">
-        <MSBuild Projects="..\White-Endorphin\Main.dproj"/>
+    <Target Name="Laba3">
+        <MSBuild Projects="D:\Education\BSUIR\Disciplines\Algorithms and Data Structures\Labs\Lab_3\Laba3.dproj"/>
     </Target>
-    <Target Name="Main:Clean">
-        <MSBuild Projects="..\White-Endorphin\Main.dproj" Targets="Clean"/>
+    <Target Name="Laba3:Clean">
+        <MSBuild Projects="D:\Education\BSUIR\Disciplines\Algorithms and Data Structures\Labs\Lab_3\Laba3.dproj" Targets="Clean"/>
     </Target>
-    <Target Name="Main:Make">
-        <MSBuild Projects="..\White-Endorphin\Main.dproj" Targets="Make"/>
+    <Target Name="Laba3:Make">
+        <MSBuild Projects="D:\Education\BSUIR\Disciplines\Algorithms and Data Structures\Labs\Lab_3\Laba3.dproj" Targets="Make"/>
     </Target>
     <Target Name="Build">
-        <CallTarget Targets="QWEDitor;NoteBad;CustomDragDrop;Project3;Main"/>
+        <CallTarget Targets="QWEDitor;NoteBad;CustomDragDrop;Project3;Laba3"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="QWEDitor:Clean;NoteBad:Clean;CustomDragDrop:Clean;Project3:Clean;Main:Clean"/>
+        <CallTarget Targets="QWEDitor:Clean;NoteBad:Clean;CustomDragDrop:Clean;Project3:Clean;Laba3:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="QWEDitor:Make;NoteBad:Make;CustomDragDrop:Make;Project3:Make;Main:Make"/>
+        <CallTarget Targets="QWEDitor:Make;NoteBad:Make;CustomDragDrop:Make;Project3:Make;Laba3:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>

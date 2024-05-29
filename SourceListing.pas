@@ -33,7 +33,11 @@ type
 
 procedure ParseBySpaces(toParse: string; var result: TTokens); forward;
 
+procedure ParseBySpaces(toParse: string; var result: TTokens);
+begin
 
+
+end;
 
 
 procedure TfrmDelphiListing.btnGenerateFlowchartClick(Sender: TObject);
