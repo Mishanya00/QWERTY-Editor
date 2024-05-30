@@ -91,7 +91,7 @@ uses
 
   // custom imports
   DrawSymbols, DataStructures, SourceListing, FilesHandling, Vcl.Imaging.jpeg,
-  Vcl.Imaging.pngimage, Vcl.Printers;
+  Vcl.Imaging.pngimage, Vcl.Printers, StackRoutine;
 
 type
   TfrmMain = class(TForm)
@@ -193,6 +193,8 @@ type
     imgDocument: TImage;
     sbInstruments: TScrollBox;
     Splitter1: TSplitter;
+    actUndo: TAction;
+    ToolButton15: TToolButton;
     procedure pbWorkingAreaMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
     procedure FormCreate(Sender: TObject);
@@ -220,6 +222,7 @@ type
       Shift: TShiftState);
     procedure reMainInputExit(Sender: TObject);
     procedure sdMainTypeChange(Sender: TObject);
+    procedure FormClose(Sender: TObject; var Action: TCloseAction);
 
   private
     currentMode: TState;
@@ -232,6 +235,8 @@ type
     blocksClipboard: PBlock;
     labelsClipboard: PText;
     linesClipboard: PLine;
+
+    history: PStack;
 
     defaultWidth: Integer;
     defaultHeight: Integer;
@@ -289,6 +294,7 @@ const
   TEXT_MODE_TAG = 11;
   SELECT_ALL_TAG = 12;
   CHOOSE_FONT_TAG = 13;
+  UNDO_TAG = 14;
 
 {$R *.dfm}
 
@@ -528,6 +534,38 @@ begin
           end;
         end;
 
+      UNDO_TAG:
+        begin
+          // Check that there is at least 1 snapshot in history
+          if GetTop(history).blocks <> nil then
+          begin
+
+            var
+              tempStack: TStack;
+
+            tempStack := Pop(history);
+
+            SetSymbolsState(stSelected, blocks, labels, lines);
+            RemoveSelectedSymbols(blocks, labels, lines);
+
+            CopySymbolsFromTo(tempStack.blocks, tempStack.labels,
+              tempStack.lines, blocks, labels, lines);
+            SetSymbolsState(stNormal, blocks, labels, lines);
+
+            // Deletion all the popped values and then disposing pointers
+            SetSymbolsState(stSelected, tempStack.blocks, tempStack.labels,
+              tempStack.lines);
+            RemoveSelectedSymbols(tempStack.blocks, tempStack.labels,
+              tempStack.lines);
+            Dispose(tempStack.blocks);
+            Dispose(tempStack.labels);
+            Dispose(tempStack.lines);
+
+            pbWorkingArea.Invalidate;
+
+          end;
+        end;
+
       NORMAL_MODE_TAG:
         begin
           currentMode := stNormal;
@@ -566,6 +604,19 @@ begin
 
 end;
 
+procedure TfrmMain.FormClose(Sender: TObject; var Action: TCloseAction);
+begin
+
+  SetSymbolsState(stSelected, blocks, labels, lines);
+  RemoveSelectedSymbols(blocks, labels, lines);
+
+  Dispose(blocks);
+  Dispose(labels);
+  Dispose(lines);
+
+  DisposeStack(history);
+end;
+
 procedure TfrmMain.FormCreate(Sender: TObject);
 begin
 
@@ -586,6 +637,7 @@ begin
   tempBlock := nil;
   tempLabel := nil;
   FFileName := '';
+  history := CreateStack();
 
   selectedSymbolsCount := 0;
   defaultWidth := 60;
@@ -620,6 +672,7 @@ begin
   actTextMode.Tag := TEXT_MODE_TAG;
   actSelectAll.Tag := SELECT_ALL_TAG;
   actChooseFont.Tag := CHOOSE_FONT_TAG;
+  actUndo.Tag := UNDO_TAG;
 
   // Assignment of image-symbols tags
   imgTerminator.Tag := 1;
@@ -650,7 +703,10 @@ procedure TfrmMain.FormKeyDown(Sender: TObject; var Key: Word;
 begin
   case Key of
     VK_DELETE:
+    begin
+      Push(history, ToStack(blocks, labels, lines));
       RemoveSelectedSymbols(blocks, labels, lines);
+    end;
   end;
 
   pbWorkingArea.Invalidate;
@@ -691,6 +747,8 @@ begin
 
         else
         begin
+
+          Push(history, ToStack(blocks, labels, lines));
 
           BlockTextingID := GetBlockIdByCoord(point, blocks);
           LabelTextingID := GetLabelIDByCoord(point, labels);
@@ -765,6 +823,8 @@ var
   tempBlock: TBlockInfo;
 
 begin
+
+  Push(history, ToStack(blocks, labels, lines));
 
   tempBlock.bounds := Rect(X - defaultWidth, Y - defaultHeight,
     X + defaultWidth, Y + defaultHeight);
@@ -929,8 +989,9 @@ begin
               id := GetIdByCoord(point(X, Y), blocks, labels, lines);
               if id <> -1 then
               begin
-                fDragging := True;
+                Push(history, ToStack(blocks, labels, lines));
 
+                fDragging := True;
                 startDraggingPoint.X := X;
                 startDraggingPoint.Y := Y;
                 startDraggingDrawingPoint.X := X;
@@ -965,6 +1026,10 @@ begin
         case Button of
           mbLeft:
             begin
+
+              Push(history, ToStack(blocks, labels, lines));
+              // Saving the current state to history
+
               fLining := True;
               tempLineId := -1;
               // It means that this line hasnt been added to lines list
@@ -1126,7 +1191,10 @@ begin
     pbWorkingArea.Invalidate;
   end;
 
-  fLining := false;
+  if fLining = True then
+  begin
+    fLining := false;
+  end;
 end;
 
 procedure TfrmMain.pbWorkingAreaPaint(Sender: TObject);

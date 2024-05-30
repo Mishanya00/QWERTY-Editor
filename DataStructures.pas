@@ -84,11 +84,13 @@ type
     next: PStack;
   end;
 
-
 function AddBlock(blocks: PBlock; blockToAdd: TBlockInfo): integer;
 function AddLine(lines: PLine; lineToAdd: TLineInfo): integer;
 function AddLabel(labels: PText; labelToAdd: TTextInfo): integer;
 procedure ConstructLine(lines: PLine);
+
+procedure CopySymbolsFromTo(blockSource: PBlock; labelSource: PText; lineSource: PLine;
+  blockDest: PBlock; labelDest: PText; lineDest: PLine);
 
 function GetBlockIdByCoord(point: TPoint; blocks: PBlock): integer;
 function GetLabelIDByCoord(point: TPoint; labels: PText): integer;
@@ -128,6 +130,8 @@ procedure SetSymbolBounds(id: integer; bounds: TRect; blocks: PBlock;
 procedure InitDataStructures(var blocks: PBlock; var lines: PLine;
   var labels: PText; var blocksClipboard: PBlock; var labelsClipBoard: PText;
   var linesClipBoard: PLine);
+
+function ToStack(blocks: PBlock; labels: PText; lines: PLine): TStack;
 
 implementation
 
@@ -244,6 +248,46 @@ begin
 
     lines.vertexes[3] := lines.info.finish;
   end;
+end;
+
+procedure CopySymbolsFromTo(blockSource: PBlock; labelSource: PText; lineSource: PLine;
+  blockDest: PBlock; labelDest: PText; lineDest: PLine);
+begin
+
+  while blockSource.next <> nil do
+  begin
+    blockSource := blockSource.next;
+
+    New(blockDest.next);
+    blockDest := blockDest.next;
+    blockDest.next := nil;
+
+    blockDest.info := blockSource.info;
+  end;
+
+  while labelSource.next <> nil do
+  begin
+    labelSource := labelSource.next;
+
+    New(labelDest.next);
+    labelDest := labelDest.next;
+    labelDest.next := nil;
+
+    labelDest.info := labelSource.info;
+  end;
+
+  while lineSource.next <> nil do
+  begin
+    lineSource := lineSource.next;
+
+    New(lineDest.next);
+    lineDest := lineDest.next;
+    lineDest.next := nil;
+
+    lineDest.info := lineSource.info;
+    lineDest.vertexes := lineSource.vertexes;
+  end;
+
 end;
 
 function GetBlockIdByCoord(point: TPoint; blocks: PBlock): integer;
@@ -751,8 +795,8 @@ begin
   begin
     lines := lines.next;
 
-    if PointInRect(lines.info.start, area) and PointInRect(lines.info.finish, area)
-    then
+    if PointInRect(lines.info.start, area) and PointInRect(lines.info.finish,
+      area) then
       lines.state := stSelected;
   end;
 end;
@@ -851,6 +895,14 @@ begin
     lines.state := state;
   end;
 
+end;
+
+function ToStack(blocks: PBlock; labels: PText; lines: PLine): TStack;
+begin
+  Result.blocks := blocks;
+  Result.labels := labels;
+  Result.lines := lines;
+  Result.next := nil;
 end;
 
 procedure InitDataStructures(var blocks: PBlock; var lines: PLine;
