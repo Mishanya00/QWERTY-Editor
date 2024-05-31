@@ -90,8 +90,8 @@ uses
   Vcl.ExtCtrls, Vcl.StdCtrls,
 
   // custom imports
-  DrawSymbols, DataStructures, SourceListing, FilesHandling, Vcl.Imaging.jpeg,
-  Vcl.Imaging.pngimage, Vcl.Printers, StackRoutine;
+  DrawSymbols, DataStructures, FilesHandling, Vcl.Imaging.jpeg,
+  Vcl.Imaging.pngimage, Vcl.Printers, StackRoutine, Settings;
 
 type
   TfrmMain = class(TForm)
@@ -195,6 +195,8 @@ type
     Splitter1: TSplitter;
     actUndo: TAction;
     ToolButton15: TToolButton;
+    actSettings: TAction;
+    N17: TMenuItem;
     procedure pbWorkingAreaMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
     procedure FormCreate(Sender: TObject);
@@ -275,6 +277,7 @@ type
 
 var
   frmMain: TfrmMain;
+  // frmSettings: TfrmSettings;
 
 implementation
 
@@ -295,6 +298,7 @@ const
   SELECT_ALL_TAG = 12;
   CHOOSE_FONT_TAG = 13;
   UNDO_TAG = 14;
+  SETTINGS_TAG = 15;
 
 {$R *.dfm}
 
@@ -324,14 +328,7 @@ begin
           if not(odMain.Execute()) then
             Exit;
           FFileName := odMain.Files[0];
-          if SameText(ExtractFileExt(FFileName), '.dpr') or
-            SameText(ExtractFileExt(FFileName), '.pas') then
-          begin
-            frmDelphiListing.Show();
-            frmDelphiListing.memoListing.lines.LoadFromFile(FFileName);
-            frmDelphiListing.Caption := 'Listing - ' + FFileName;
-          end
-          else if SameText(ExtractFileExt(FFileName), '.rog') then
+          if SameText(ExtractFileExt(FFileName), '.rog') then
           begin
             SetSymbolsState(stSelected, blocks, labels, lines);
             RemoveSelectedSymbols(blocks, labels, lines);
@@ -403,6 +400,7 @@ begin
 
       CUT_TAG:
         begin
+          Push(history, ToStack(blocks, labels, lines));
           actionsExecuter(actCopy);
           RemoveSelectedSymbols(blocks, labels, lines);
           pbWorkingArea.Invalidate;
@@ -472,6 +470,7 @@ begin
           var
             tempLine: PLine;
 
+          Push(history, ToStack(blocks, labels, lines));
           mouseCoord := pbWorkingArea.ScreenToClient(Mouse.CursorPos);
           difX := mouseCoord.X - startCopyPoint.X;
           difY := mouseCoord.Y - startCopyPoint.Y;
@@ -598,6 +597,34 @@ begin
             Exit;
           reMainInput.Font := fdTextMode.Font;
         end;
+      SETTINGS_TAG:
+        begin
+          var
+            intVar: Integer;
+
+          frmSettings.editBlockWidth.Text := IntToStr(defaultWidth);
+          frmSettings.editBlockHeight.Text := IntToStr(defaultHeight);
+          frmSettings.editCanvasWidth.Text := IntToStr(pbWorkingArea.Width);
+          frmSettings.editCanvasHeight.Text := IntToStr(pbWorkingArea.Height);
+          frmSettings.isAccepted := false;
+          frmSettings.ShowModal();
+
+          if frmSettings.isAccepted = true then
+          begin
+            if TryStrToInt(frmSettings.editBlockWidth.Text, intVar) and
+              (intVar > 20) then
+              defaultWidth := intVar;
+            if TryStrToInt(frmSettings.editBlockHeight.Text, intVar) and
+              (intVar > 20) then
+              defaultHeight := intVar;
+            if TryStrToInt(frmSettings.editCanvasWidth.Text, intVar) and
+              (intVar > 20) then
+              pbWorkingArea.Width := intVar;
+            if TryStrToInt(frmSettings.editCanvasHeight.Text, intVar) and
+              (intVar > 20) then
+              pbWorkingArea.Height := intVar;
+          end;
+        end;
     end;
 
   end;
@@ -673,6 +700,7 @@ begin
   actSelectAll.Tag := SELECT_ALL_TAG;
   actChooseFont.Tag := CHOOSE_FONT_TAG;
   actUndo.Tag := UNDO_TAG;
+  actSettings.Tag := SETTINGS_TAG;
 
   // Assignment of image-symbols tags
   imgTerminator.Tag := 1;
@@ -696,6 +724,7 @@ begin
   imgDocument.Tag := 19;
 
   windowState := wsMaximized;
+
 end;
 
 procedure TfrmMain.FormKeyDown(Sender: TObject; var Key: Word;
@@ -703,10 +732,10 @@ procedure TfrmMain.FormKeyDown(Sender: TObject; var Key: Word;
 begin
   case Key of
     VK_DELETE:
-    begin
-      Push(history, ToStack(blocks, labels, lines));
-      RemoveSelectedSymbols(blocks, labels, lines);
-    end;
+      begin
+        Push(history, ToStack(blocks, labels, lines));
+        RemoveSelectedSymbols(blocks, labels, lines);
+      end;
   end;
 
   pbWorkingArea.Invalidate;
@@ -715,14 +744,14 @@ end;
 procedure TfrmMain.imgTerminatorMouseDown(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 begin
-  (Sender as TImage).BeginDrag(True);
+  (Sender as TImage).BeginDrag(true);
 end;
 
 procedure TfrmMain.panelSymbolsDragOver(Sender, Source: TObject; X, Y: Integer;
   State: TDragState; var Accept: Boolean);
 begin
   if Source.ClassName = 'TImage' then
-    Accept := True
+    Accept := true
   else
     Accept := false;
 end;
@@ -739,7 +768,7 @@ begin
         point := (Sender as TControl).ScreenToClient(Mouse.CursorPos);
 
         // If user has already typed text and then clicked to the empty place. We should launch RichEdit.Exit
-        if (reMainInput.Enabled = True) then
+        if (reMainInput.Enabled = true) then
         begin
           reMainInput.Enabled := false;
           reMainInput.Visible := false;
@@ -804,8 +833,8 @@ begin
             reMainInput.Height := 5 * fdTextMode.Font.Size;
           end;
 
-          reMainInput.Enabled := True;
-          reMainInput.Visible := True;
+          reMainInput.Enabled := true;
+          reMainInput.Visible := true;
           reMainInput.SetFocus;
 
         end;
@@ -991,7 +1020,7 @@ begin
               begin
                 Push(history, ToStack(blocks, labels, lines));
 
-                fDragging := True;
+                fDragging := true;
                 startDraggingPoint.X := X;
                 startDraggingPoint.Y := Y;
                 startDraggingDrawingPoint.X := X;
@@ -1009,7 +1038,7 @@ begin
               else
               begin
                 SetSymbolsState(stNormal, blocks, labels, lines);
-                fSelecting := True;
+                fSelecting := true;
                 startSelectingPoint.X := X;
                 startSelectingPoint.Y := Y;
                 startDraggingPoint.X := X;
@@ -1030,7 +1059,7 @@ begin
               Push(history, ToStack(blocks, labels, lines));
               // Saving the current state to history
 
-              fLining := True;
+              fLining := true;
               tempLineId := -1;
               // It means that this line hasnt been added to lines list
               startLiningPoint.X := X;
@@ -1072,7 +1101,7 @@ begin
 
   sbSupport.Panels[0].Text := 'X: ' + IntToStr(X) + '  Y: ' + IntToStr(Y);
 
-  if fDragging = True then
+  if fDragging = true then
   begin
 
     if (X + defaultWidth >= pbWorkingArea.Width) then
@@ -1105,7 +1134,7 @@ begin
     end;
   end
 
-  else if fLining = True then
+  else if fLining = true then
   begin
     if (abs(X - startLiningPoint.X) >= liningStep) or
       (abs(Y - startLiningPoint.Y) >= liningStep) then
@@ -1139,7 +1168,7 @@ begin
     end;
   end
 
-  else if fSelecting = True then
+  else if fSelecting = true then
   begin
     if (abs(X - startDraggingPoint.X) >= draggingStep) or
       (abs(Y - startDraggingPoint.Y) >= draggingStep) then
@@ -1174,12 +1203,12 @@ end;
 procedure TfrmMain.pbWorkingAreaMouseUp(Sender: TObject; Button: TMouseButton;
   Shift: TShiftState; X, Y: Integer);
 begin
-  if fDragging = True then
+  if fDragging = true then
   begin
     fDragging := false;
     pbWorkingArea.Invalidate;
   end;
-  if fSelecting = True then
+  if fSelecting = true then
   begin
 
     SelectSymbolsInArea(Rect(startSelectingPoint.X, startSelectingPoint.Y, X,
@@ -1191,7 +1220,7 @@ begin
     pbWorkingArea.Invalidate;
   end;
 
-  if fLining = True then
+  if fLining = true then
   begin
     fLining := false;
   end;

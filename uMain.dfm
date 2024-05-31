@@ -11642,7 +11642,7 @@ object frmMain: TfrmMain
   end
   object alMain: TActionList
     Left = 840
-    Top = 408
+    Top = 360
     object actCreate: TAction
       Category = 'Files'
       Caption = #1057#1086#1079#1076#1072#1090#1100
@@ -11729,7 +11729,7 @@ object frmMain: TfrmMain
     end
     object actSelectAll: TAction
       Category = 'Edit'
-      Caption = 'Select All'
+      Caption = #1042#1099#1076#1077#1083#1080#1090#1100' '#1074#1089#1105
       ShortCut = 16449
       OnExecute = actionsExecuter
     end
@@ -11745,10 +11745,15 @@ object frmMain: TfrmMain
       ShortCut = 16474
       OnExecute = actionsExecuter
     end
+    object actSettings: TAction
+      Category = 'Settings'
+      Caption = #1053#1072#1089#1090#1088#1086#1081#1082#1080
+      OnExecute = actionsExecuter
+    end
   end
   object ilMain: TImageList
-    Left = 904
-    Top = 408
+    Left = 912
+    Top = 416
     Bitmap = {
       494C01010C001800040010001000FFFFFFFFFF10FFFFFFFFFFFFFFFF424D3600
       0000000000003600000028000000400000004000000001002000000000000040
@@ -12287,8 +12292,8 @@ object frmMain: TfrmMain
   end
   object MainMenu1: TMainMenu
     Images = ilMain
-    Left = 960
-    Top = 408
+    Left = 992
+    Top = 416
     object N1: TMenuItem
       Caption = #1060#1072#1081#1083
       object N3: TMenuItem
@@ -12343,21 +12348,24 @@ object frmMain: TfrmMain
       object N16: TMenuItem
         Action = actChooseFont
       end
+      object N17: TMenuItem
+        Action = actSettings
+      end
     end
   end
   object odMain: TOpenDialog
     DefaultExt = '.dpr'
-    Filter = 'Flowchart Files|*rog|Pascal Files|*pas;*dpr;'
+    Filter = 'Flowchart Files|*rog'
     Left = 840
-    Top = 456
+    Top = 440
   end
   object sdMain: TSaveDialog
     DefaultExt = 'rog'
     FileName = 'test'
     Filter = 'Flowchart File|*.rog|Flowchart Image|*.png'
     OnTypeChange = sdMainTypeChange
-    Left = 976
-    Top = 464
+    Left = 992
+    Top = 472
   end
   object fdTextMode: TFontDialog
     Font.Charset = DEFAULT_CHARSET
@@ -12367,15 +12375,15 @@ object frmMain: TfrmMain
     Font.Style = []
     MinFontSize = 5
     MaxFontSize = 25
-    Left = 960
-    Top = 360
+    Left = 992
+    Top = 352
   end
   object pdMain: TPrintDialog
     Left = 908
-    Top = 364
+    Top = 348
   end
   object ilFlowchartSymbols: TImageList
-    Left = 904
-    Top = 456
+    Left = 912
+    Top = 472
   end
 end

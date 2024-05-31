@@ -103,13 +103,13 @@
             <FormType>dfm</FormType>
         </DCCReference>
         <DCCReference Include="DataStructures.pas"/>
-        <DCCReference Include="SourceListing.pas">
-            <Form>frmDelphiListing</Form>
-            <FormType>dfm</FormType>
-        </DCCReference>
         <DCCReference Include="DrawSymbols.pas"/>
         <DCCReference Include="FilesHandling.pas"/>
         <DCCReference Include="StackRoutine.pas"/>
+        <DCCReference Include="Settings.pas">
+            <Form>frmSettings</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>

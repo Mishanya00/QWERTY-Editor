@@ -4,10 +4,10 @@ uses
   Vcl.Forms,
   uMain in 'uMain.pas' {frmMain},
   DataStructures in 'DataStructures.pas',
-  SourceListing in 'SourceListing.pas' {frmDelphiListing},
   DrawSymbols in 'DrawSymbols.pas',
   FilesHandling in 'FilesHandling.pas',
-  StackRoutine in 'StackRoutine.pas';
+  StackRoutine in 'StackRoutine.pas',
+  Settings in 'Settings.pas' {frmSettings};
 
 {$R *.res}
 
@@ -15,6 +15,6 @@ begin
   Application.Initialize;
   Application.MainFormOnTaskbar := True;
   Application.CreateForm(TfrmMain, frmMain);
-  Application.CreateForm(TfrmDelphiListing, frmDelphiListing);
+  Application.CreateForm(TfrmSettings, frmSettings);
   Application.Run;
 end.
