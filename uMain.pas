@@ -281,8 +281,6 @@ var
 
 implementation
 
-procedure InitTags(); forward;
-
 const
   CREATE_TAG = 1;
   OPEN_TAG = 2;
@@ -301,11 +299,6 @@ const
   SETTINGS_TAG = 15;
 
 {$R *.dfm}
-
-procedure InitTags();
-begin
-
-end;
 
 procedure TfrmMain.actionsExecuter(Sender: TObject);
 begin
@@ -675,7 +668,7 @@ begin
   textInBlockMargin := 5;
 
   reMainInput.Font := fdTextMode.Font;
-  reMainInput.Width := 100;
+  reMainInput.Width := reMainInput.Font.Size * 15;
 
   fLining := false;
   fDragging := false;
@@ -859,11 +852,6 @@ begin
     X + defaultWidth, Y + defaultHeight);
   tempBlock.center.X := X;
   tempBlock.center.Y := Y;
-
-  tempBlock.LLineID := -1;
-  tempBlock.ULineID := -1;
-  tempBlock.RLineID := -1;
-  tempBlock.BLineID := -1;
 
   tempBlock.TextInfo.bounds.Left := tempBlock.bounds.Left + textInBlockMargin;
   tempBlock.TextInfo.bounds.Top := tempBlock.bounds.Top;
@@ -1095,7 +1083,7 @@ procedure TfrmMain.pbWorkingAreaMouseMove(Sender: TObject; Shift: TShiftState;
   X, Y: Integer);
 
 var
-  centered: TPoint;
+  maxPoint: TPoint;
 
 begin
 
@@ -1104,19 +1092,16 @@ begin
   if fDragging = true then
   begin
 
-    if (X + defaultWidth >= pbWorkingArea.Width) then
-      pbWorkingArea.Width := X + defaultWidth + 100;
-    if (Y + defaultHeight >= pbWorkingArea.Height) then
-      pbWorkingArea.Height := Y + defaultHeight + 100;
+    maxPoint := GetMaxPointFromSelected(blocks, labels, lines);
+
+    if (maxPoint.X >= pbWorkingArea.Width) then
+      pbWorkingArea.Width := maxPoint.X + 30;
+    if (maxPoint.Y >= pbWorkingArea.Height) then
+      pbWorkingArea.Height :=  maxPoint.Y + 30;
 
     if (abs(X - startDraggingPoint.X) >= draggingStep) or
       (abs(Y - startDraggingPoint.Y) >= draggingStep) then
     begin
-
-      { // Increasing draggingStep during drag
-        if draggingStep <= 30 then
-        draggingStep := draggingStep + 3;
-      }
 
       OffsetSelectedSymbols(blocks, labels, lines, X - startDraggingPoint.X,
         Y - startDraggingPoint.Y);
@@ -1139,17 +1124,6 @@ begin
     if (abs(X - startLiningPoint.X) >= liningStep) or
       (abs(Y - startLiningPoint.Y) >= liningStep) then
     begin
-      {
-        if (abs(X - startLiningPoint.X) >= draggingStep) then
-        tempLine.finish.X := X
-        else
-        tempLine.finish.X := startLiningPoint.X;
-        if (abs(Y - startLiningPoint.Y) >= draggingStep) then
-        tempLine.finish.Y := Y
-        else
-        tempLine.finish.Y := startLiningPoint.Y;
-      }
-
       tempLine.finish.X := X;
       tempLine.finish.Y := Y;
 

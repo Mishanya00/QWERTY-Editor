@@ -8680,7 +8680,7 @@ object frmMain: TfrmMain
       OnPaint = pbWorkingAreaPaint
     end
     object reMainInput: TRichEdit
-      Left = 576
+      Left = 604
       Top = 6
       Width = 217
       Height = 64
@@ -8712,6 +8712,7 @@ object frmMain: TfrmMain
     Color = clInactiveCaption
     ParentColor = False
     TabOrder = 3
+    OnDragOver = panelSymbolsDragOver
     ExplicitHeight = 488
     object pngDocument: TPanel
       Left = 10
@@ -10731,8 +10732,7 @@ object frmMain: TfrmMain
           FF07D873E590D0F9EBF40000000049454E44AE426082}
         Stretch = True
         OnMouseDown = imgTerminatorMouseDown
-        ExplicitLeft = 8
-        ExplicitTop = 0
+        ExplicitLeft = 0
       end
     end
     object pnlProcess: TPanel

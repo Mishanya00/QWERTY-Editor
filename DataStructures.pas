@@ -41,10 +41,6 @@ type
 
   TBlockInfo = record
     id: integer;
-    LLineID: integer; // Left Line
-    ULineID: integer; // upper
-    RLineID: integer; // right
-    BLineID: integer; // bottom
     blockType: TBlockType;
     bounds: TRect;
     center: TPoint;
@@ -54,10 +50,6 @@ type
   TBlock = record
     state: TState;
     info: TBlockInfo;
-    pLLine: PLine;
-    pULine: PLine;
-    pRLine: PLine;
-    pBLine: PLine;
     next: PBlock;
   end;
 
@@ -89,8 +81,8 @@ function AddLine(lines: PLine; lineToAdd: TLineInfo): integer;
 function AddLabel(labels: PText; labelToAdd: TTextInfo): integer;
 procedure ConstructLine(lines: PLine);
 
-procedure CopySymbolsFromTo(blockSource: PBlock; labelSource: PText; lineSource: PLine;
-  blockDest: PBlock; labelDest: PText; lineDest: PLine);
+procedure CopySymbolsFromTo(blockSource: PBlock; labelSource: PText;
+  lineSource: PLine; blockDest: PBlock; labelDest: PText; lineDest: PLine);
 
 function GetBlockIdByCoord(point: TPoint; blocks: PBlock): integer;
 function GetLabelIDByCoord(point: TPoint; labels: PText): integer;
@@ -99,6 +91,8 @@ function GetIdByCoord(point: TPoint; blocks: PBlock; labels: PText;
 function GetLineById(id: integer; lines: PLine): PLine;
 function GetBlockById(id: integer; blocks: PBlock): PBlock;
 function GetLabelById(id: integer; labels: PText): PText;
+function GetMaxPointFromSelected(blocks: PBlock; labels: PText;
+  lines: PLine): TPoint;
 
 function GetNearestSymbolCoord(segment: integer; blocks: PBlock): TPoint;
 function isPointInLine(point: TPoint; line: PLine): boolean;
@@ -160,10 +154,6 @@ begin
   blocks.info := blockToAdd;
   blocks.info.id := CurrentID;
 
-  blocks.pLLine := nil;
-  blocks.pULine := nil;
-  blocks.pRLine := nil;
-  blocks.pBLine := nil;
   blocks.next := nil;
 
   Result := CurrentID;
@@ -250,8 +240,8 @@ begin
   end;
 end;
 
-procedure CopySymbolsFromTo(blockSource: PBlock; labelSource: PText; lineSource: PLine;
-  blockDest: PBlock; labelDest: PText; lineDest: PLine);
+procedure CopySymbolsFromTo(blockSource: PBlock; labelSource: PText;
+  lineSource: PLine; blockDest: PBlock; labelDest: PText; lineDest: PLine);
 begin
 
   while blockSource.next <> nil do
@@ -398,6 +388,48 @@ begin
       exit;
     end;
   end;
+end;
+
+function GetMaxPointFromSelected(blocks: PBlock; labels: PText;
+  lines: PLine): TPoint;
+begin
+
+  Result.X := -1;
+  Result.Y := -1;
+
+  while blocks.next <> nil do
+  begin
+    blocks := blocks.next;
+    if blocks.info.bounds.Right > Result.X then
+      Result.X := blocks.info.bounds.Right;
+    if blocks.info.bounds.Bottom > Result.Y then
+      Result.Y := blocks.info.bounds.Bottom
+  end;
+
+  while labels.next <> nil do
+  begin
+    labels := labels.next;
+    if labels.info.bounds.Right > Result.X then
+      Result.X := labels.info.bounds.Right;
+    if labels.info.bounds.Bottom > Result.Y then
+      Result.Y := labels.info.bounds.Bottom
+  end;
+
+  while lines.next <> nil do
+  begin
+    lines := lines.next;
+
+    if lines.info.start.X > Result.X then
+      Result.X := lines.info.start.X;
+    if lines.info.finish.X > Result.X then
+      Result.X := lines.info.finish.X;
+
+    if lines.info.start.Y > Result.Y then
+      Result.Y := lines.info.start.Y;
+    if lines.info.finish.Y > Result.Y then
+      Result.Y := lines.info.finish.Y;
+  end;
+
 end;
 
 function GetNearestSymbolCoord(segment: integer; blocks: PBlock): TPoint;
