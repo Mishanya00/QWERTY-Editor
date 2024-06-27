@@ -10,6 +10,8 @@ Features:
   - Selection symbols in area
   - And so on
 
+
+Screenshot of the main window:
 ![изображение](https://github.com/Mishanya00/QWERTY-Editor/assets/116641987/6e5cefa8-65a6-4cba-b9c6-a98a1982b4fd)
 
 
